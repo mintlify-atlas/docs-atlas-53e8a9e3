@@ -1,0 +1,151 @@
+{
+  "projectType": "framework",
+  "projectName": "TailStack",
+  "projectDescription": "Production-grade monorepo architecture framework for building scalable ERN stack applications with Express, React, and Node.js",
+  "theme": "aspen",
+  "primaryColor": "#38bdf8",
+  "lightColor": "#7dd3fc",
+  "darkColor": "#0284c7",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/core-monorepo",
+              "architecture/react-template",
+              "architecture/node-template",
+              "architecture/project-structure"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/monorepo-management",
+              "concepts/frontend-stack",
+              "concepts/backend-stack",
+              "concepts/agent-skills"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/scripts",
+              "development/workflow",
+              "development/customization"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/building-with-core",
+              "guides/frontend-development",
+              "guides/backend-development",
+              "guides/deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Components & APIs",
+        "groups": [
+          {
+            "group": "Frontend",
+            "pages": [
+              "frontend/components",
+              "frontend/routing",
+              "frontend/styling",
+              "frontend/state-management"
+            ]
+          },
+          {
+            "group": "Backend",
+            "pages": [
+              "backend/server-setup",
+              "backend/clustering",
+              "backend/routing",
+              "backend/middleware",
+              "backend/configuration"
+            ]
+          },
+          {
+            "group": "Automation",
+            "pages": [
+              "automation/clean-script",
+              "automation/install-script",
+              "automation/custom-scripts"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Templates",
+            "pages": [
+              "reference/core-package",
+              "reference/react-package",
+              "reference/node-package"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "reference/package-json",
+              "reference/typescript-config",
+              "reference/vite-config",
+              "reference/environment-variables"
+            ]
+          },
+          {
+            "group": "Agent Skills",
+            "pages": [
+              "reference/vercel-react-practices",
+              "reference/nodejs-patterns",
+              "reference/tailwind-shadcn-skill"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Three production-ready architecture templates (Core monorepo, React, Node)",
+    "Modern ERN stack with Vite, React 19, Express 5, and TypeScript",
+    "Pre-configured Tailwind CSS 4 and Shadcn UI components",
+    "Node.js clustering for multi-core performance optimization",
+    "Advanced cross-platform automation scripts (clean, install)",
+    "Pre-integrated AI agent skills for code generation and best practices",
+    "Comprehensive security setup with CORS, Husky, and Gitleaks",
+    "Conventional commits enforcement with Commitlint",
+    "Monorepo management with PNPM workspaces"
+  ],
+  "publicApiSurface": [
+    "npx degit GitCoder052023/TailStack/packages/core - Scaffold Core monorepo",
+    "npx degit GitCoder052023/TailStack/packages/react - Scaffold React template",
+    "npx degit GitCoder052023/TailStack/packages/node - Scaffold Node template",
+    "pnpm dev - Start development servers",
+    "scripts/clean.ps1 / clean.sh - Clean node_modules and locks",
+    "scripts/install.ps1 / install.sh - Parallel dependency installer",
+    "GET /api/weather/location - Weather API endpoint (demo)",
+    "GET /api/weather/coordinates - Weather API endpoint (demo)",
+    "React Router navigation system",
+    "Express middleware pipeline",
+    "Node cluster initialization",
+    "Shadcn UI component library",
+    "Agent skills integration (.agent/, .claude/, .cursor/, .opencode/)"
+  ]
+}
