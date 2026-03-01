@@ -1,0 +1,606 @@
+---
+title: Development Workflow
+description: Learn the daily development workflow for building with TailStack's monorepo architecture
+---
+
+## Overview
+
+TailStack uses a **PNPM workspace-based monorepo** structure that enables efficient development across multiple packages. This guide covers the essential workflows for daily development.
+
+## Running Development Servers
+
+The Core package (full-stack monorepo) includes a unified dev command that runs both frontend and backend simultaneously.
+
+### Start All Services
+
+From the `packages/core` directory:
+
+```bash
+pnpm dev
+```
+
+This command uses **Concurrently** to run multiple dev servers in parallel:
+
+```json
+{
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\""
+  }
+}
+```
+
+**What happens:**
+- Frontend (Vite) starts on `http://localhost:5173`
+- Backend (Express) starts on `http://localhost:3000`
+- Both output logs to the same terminal with color-coded prefixes
+
+<Tip>
+**Hot Reload:** Both frontend and backend support hot module replacement (HMR). Changes are reflected immediately without restarting servers.
+</Tip>
+
+### Start Individual Services
+
+<Tabs>
+  <Tab title="Frontend Only">
+    ```bash
+    pnpm --filter ./source/frontend dev
+    ```
+    
+    Starts only the React frontend with Vite.
+  </Tab>
+  
+  <Tab title="Backend Only">
+    ```bash
+    pnpm --filter ./source/Server dev
+    ```
+    
+    Starts only the Express backend with Nodemon.
+  </Tab>
+</Tabs>
+
+### Development URLs
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend | `http://localhost:5173` | React app with Vite HMR |
+| Backend | `http://localhost:3000` | Express API server |
+| Backend Health | `http://localhost:3000/health` | API health check endpoint |
+
+## PNPM Workspace Commands
+
+TailStack's monorepo structure uses PNPM workspaces for package management. Understanding workspace commands is essential for efficient development.
+
+### Filtering Packages
+
+**Run command in specific package:**
+```bash
+pnpm --filter <package-name> <command>
+```
+
+**Examples:**
+```bash
+# Install dependencies for frontend only
+pnpm --filter ./source/frontend install
+
+# Build backend only
+pnpm --filter ./source/Server build
+
+# Add dependency to specific package
+pnpm --filter ./source/frontend add axios
+```
+
+### Running Commands Across Workspace
+
+**Run command in all packages:**
+```bash
+pnpm -r <command>
+```
+
+**Examples:**
+```bash
+# Run build in all packages
+pnpm -r build
+
+# Run tests in all packages
+pnpm -r test
+
+# Clean all packages
+pnpm -r clean
+```
+
+### Installing Dependencies
+
+<Steps>
+
+### Install All Dependencies
+
+From the root directory:
+```bash
+pnpm install
+```
+
+This installs dependencies for all packages in the workspace.
+
+### Install Specific Package
+
+Add dependency to a specific package:
+```bash
+# Add to frontend
+pnpm --filter ./source/frontend add react-query
+
+# Add dev dependency to backend
+pnpm --filter ./source/Server add -D jest
+
+# Add dependency to root (affects all packages)
+pnpm add -w husky
+```
+
+### Update Dependencies
+
+Update all dependencies:
+```bash
+# Update all packages
+pnpm update -r
+
+# Update specific package
+pnpm --filter ./source/frontend update
+```
+
+</Steps>
+
+### Useful PNPM Commands
+
+```bash
+# List all workspace packages
+pnpm list -r --depth 0
+
+# Check for outdated packages
+pnpm outdated -r
+
+# Why is a package installed?
+pnpm why <package-name>
+
+# Remove package from workspace
+pnpm --filter <package-name> remove <dependency>
+
+# Rebuild all node_modules
+pnpm install --force
+```
+
+<Warning>
+**Workspace Flag:** Use `-w` flag when installing root-level dependencies (like Husky, ESLint configs). Without it, PNPM will show an error.
+</Warning>
+
+## Git Workflow
+
+TailStack enforces strict commit standards using **Commitlint** and **Husky**.
+
+### Commit Message Format
+
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Type must be one of:**
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation changes
+- `style` - Code style changes (formatting, semicolons, etc.)
+- `refactor` - Code refactoring
+- `perf` - Performance improvements
+- `test` - Adding or updating tests
+- `build` - Build system changes
+- `ci` - CI configuration changes
+- `chore` - Other changes (dependencies, configs)
+- `revert` - Revert previous commit
+
+### Commit Examples
+
+<CodeGroup>
+```bash Good Commits
+# Feature with scope
+git commit -m "feat(auth): add JWT authentication middleware"
+
+# Bug fix with detailed body
+git commit -m "fix(api): resolve memory leak in WebSocket connections
+
+The WebSocket connections were not properly closed on client disconnect,
+causing memory accumulation over time.
+
+Fixes #123"
+
+# Breaking change
+git commit -m "feat(api): migrate to REST API v2
+
+BREAKING CHANGE: API endpoints now require /v2/ prefix"
+```
+
+```bash Bad Commits (Will Fail)
+# Missing type
+git commit -m "add login feature"
+
+# Type not in allowed list
+git commit -m "update: change button color"
+
+# Missing subject
+git commit -m "feat:"
+
+# Header too long (>150 chars)
+git commit -m "feat(auth): this is an extremely long commit message that exceeds the maximum allowed length and will be rejected by commitlint validation"
+```
+</CodeGroup>
+
+### Commit Limits
+
+Configured in `commitlint.config.cjs`:
+
+```javascript
+modules.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'header-max-length': [2, 'always', 150],
+    'body-max-line-length': [2, 'always', 250],
+  },
+};
+```
+
+- **Header:** Maximum 150 characters
+- **Body lines:** Maximum 250 characters each
+
+### Pre-commit Checks
+
+Every commit triggers automated checks:
+
+<Steps>
+
+### Stage Your Changes
+```bash
+git add .
+```
+
+### Attempt Commit
+```bash
+git commit -m "feat(api): add user endpoint"
+```
+
+### Pre-commit Hook Runs
+
+The `.husky/pre-commit` hook automatically executes:
+```bash
+🔍 Running pre-commit security checks...
+pnpm lint-staged
+```
+
+**Checks performed:**
+- **Gitleaks** scans staged files for secrets
+- If secrets detected, commit is **blocked**
+- Sensitive data is automatically redacted in output
+
+### Commit Message Validation
+
+The `.husky/commit-msg` hook validates your commit message:
+```bash
+pnpm commitlint --edit
+```
+
+**If validation passes:**
+```
+✔ Commit message meets Conventional Commits standards
+```
+
+**If validation fails:**
+```
+✖ subject may not be empty [subject-empty]
+✖ type may not be empty [type-empty]
+```
+
+</Steps>
+
+<Tip>
+**Quick Tip:** If you need to bypass hooks temporarily (NOT recommended), use:
+```bash
+git commit --no-verify -m "emergency fix"
+```
+Only use this in genuine emergencies!
+</Tip>
+
+### Branch Workflow
+
+Recommended branching strategy:
+
+```bash
+# Create feature branch
+git checkout -b feat/user-authentication
+
+# Make changes and commit
+git add .
+git commit -m "feat(auth): implement JWT tokens"
+
+# Push to remote
+git push origin feat/user-authentication
+
+# Create pull request
+gh pr create --title "Add user authentication" --body "Implements JWT-based auth"
+```
+
+## Building for Production
+
+### Build All Packages
+
+```bash
+# From root
+pnpm -r build
+```
+
+### Build Specific Package
+
+```bash
+# Build frontend
+pnpm --filter ./source/frontend build
+
+# Build backend
+pnpm --filter ./source/Server build
+```
+
+### Build Output
+
+- **Frontend:** Built to `source/frontend/dist/`
+- **Backend:** Built to `source/Server/dist/` (if using TypeScript compilation)
+
+## Testing
+
+### Run Tests
+
+```bash
+# Run all tests
+pnpm -r test
+
+# Run tests for specific package
+pnpm --filter ./source/frontend test
+
+# Run tests in watch mode
+pnpm --filter ./source/frontend test:watch
+```
+
+### Test Coverage
+
+```bash
+# Generate coverage report
+pnpm -r test:coverage
+```
+
+## Environment Variables
+
+### Frontend Environment
+
+Create `.env` in `source/frontend/`:
+
+```bash
+VITE_API_URL=http://localhost:3000
+VITE_APP_TITLE=TailStack App
+```
+
+Access in code:
+```typescript
+const apiUrl = import.meta.env.VITE_API_URL;
+```
+
+### Backend Environment
+
+Create `.env` in `source/Server/`:
+
+```bash
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=postgresql://localhost:5432/mydb
+JWT_SECRET=your-secret-key
+```
+
+Access in code:
+```typescript
+const port = process.env.PORT || 3000;
+```
+
+<Warning>
+**Security:** Never commit `.env` files to Git. They're included in `.gitignore` by default. Use `.env.example` as a template.
+</Warning>
+
+## Debugging
+
+### Frontend Debugging
+
+**VS Code Launch Configuration:**
+
+```json
+{
+  "type": "chrome",
+  "request": "launch",
+  "name": "Debug Frontend",
+  "url": "http://localhost:5173",
+  "webRoot": "${workspaceFolder}/source/frontend"
+}
+```
+
+### Backend Debugging
+
+**VS Code Launch Configuration:**
+
+```json
+{
+  "type": "node",
+  "request": "launch",
+  "name": "Debug Backend",
+  "runtimeExecutable": "pnpm",
+  "runtimeArgs": ["--filter", "./source/Server", "dev"],
+  "skipFiles": ["<node_internals>/**"],
+  "console": "integratedTerminal"
+}
+```
+
+## Common Workflows
+
+### Adding a New Feature
+
+<Steps>
+
+### Create Feature Branch
+```bash
+git checkout -b feat/new-feature
+```
+
+### Make Changes
+Edit code in frontend and/or backend.
+
+### Test Locally
+```bash
+pnpm dev  # Verify changes work
+```
+
+### Commit Changes
+```bash
+git add .
+git commit -m "feat(feature): add new feature implementation"
+```
+
+### Push and Create PR
+```bash
+git push origin feat/new-feature
+gh pr create
+```
+
+</Steps>
+
+### Updating Dependencies
+
+<Steps>
+
+### Check for Updates
+```bash
+pnpm outdated -r
+```
+
+### Update Specific Dependency
+```bash
+pnpm --filter <package> update <dependency>
+```
+
+### Test Changes
+```bash
+pnpm dev
+pnpm -r test
+```
+
+### Commit Changes
+```bash
+git commit -m "chore(deps): update dependencies to latest versions"
+```
+
+</Steps>
+
+### Fixing Build Errors
+
+<Steps>
+
+### Clean Everything
+```bash
+./scripts/clean.sh
+```
+
+### Fresh Install
+```bash
+./scripts/install.sh
+```
+
+### Rebuild
+```bash
+pnpm -r build
+```
+
+### Verify
+```bash
+pnpm dev
+```
+
+</Steps>
+
+## Performance Tips
+
+### Faster Installations
+
+```bash
+# Use TailStack's parallel install script
+./scripts/install.sh  # 2x faster than standard install
+
+# Skip optional dependencies
+pnpm install --no-optional
+
+# Use frozen lockfile (CI/CD)
+pnpm install --frozen-lockfile
+```
+
+### Faster Builds
+
+```bash
+# Build in parallel (default with -r flag)
+pnpm -r build
+
+# Build only changed packages (requires Turborepo)
+pnpm build --filter=...^HEAD
+```
+
+### Reduce Context Switching
+
+```bash
+# Run everything from root
+pnpm dev           # from packages/core
+pnpm -r test       # from root
+pnpm -r build      # from root
+```
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Find process using port 3000
+lsof -i :3000
+
+# Kill process
+kill -9 <PID>
+
+# Or change port in .env
+PORT=3001 pnpm dev
+```
+
+### PNPM Link Issues
+
+```bash
+# Rebuild node_modules
+pnpm install --force
+
+# Or use clean script
+./scripts/clean.sh
+./scripts/install.sh
+```
+
+### Git Hooks Not Working
+
+```bash
+# Reinstall Husky
+pnpm husky
+
+# Make hooks executable (Unix)
+chmod +x .husky/*
+```
+
+## Next Steps
+
+- Learn how to [customize TailStack](/development/customization) for your needs
+- Explore [deployment strategies](/deployment/overview)
+- Review [architecture patterns](/architecture/overview)

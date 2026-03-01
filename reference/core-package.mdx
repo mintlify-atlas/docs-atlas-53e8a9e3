@@ -1,0 +1,360 @@
+---
+title: 'Core Package'
+description: 'Complete reference for the TailStack Core monorepo package - the flagship production-grade architecture'
+icon: 'cube'
+---
+
+## Overview
+
+The **TailStack Core** package is the flagship monorepo architecture template that combines the React frontend and Node.js backend into a unified, production-grade development environment. It implements the proven TailStack Architecture with industry-standard tooling, rigorous linting, and automated workflows.
+
+<Card title="Key Benefits" icon="star">
+  - Complete full-stack monorepo architecture
+  - Pre-configured development tooling and automation
+  - Built-in security and performance optimizations
+  - Cross-platform automation scripts
+  - AI agent skills for enhanced development
+</Card>
+
+## Package Information
+
+```json
+{
+  "name": "your-project-name",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.12.1",
+  "license": "MIT"
+}
+```
+
+## Project Structure
+
+```bash
+core/
+├── assets/                 # Static assets (images, logos)
+├── Docs/                   # Application & Community documentation
+│   ├── CODE_OF_CONDUCT.md
+│   ├── CONTRIBUTING.md
+│   └── SECURITY.md
+├── scripts/                # Cross-platform automation scripts
+│   ├── clean.ps1           # PowerShell: Lightning-fast node_modules purge
+│   ├── clean.sh            # Shell: Lightning-fast node_modules purge
+│   ├── install.ps1         # PowerShell: Parallel pnpm installer
+│   └── install.sh          # Shell: Parallel pnpm installer
+├── source/
+│   ├── frontend/           # The Vite+React Client Application
+│   │   ├── src/
+│   │   │   ├── components/ # Shadcn UI & Custom Components
+│   │   │   ├── pages/      # Application pages
+│   │   │   └── ...
+│   │   └── vite.config.ts
+│   └── Server/             # The Express+TS Backend Application
+│       ├── src/
+│       │   ├── cluster/    # Node Cluster logic
+│       │   ├── routes/     # API Routes
+│       │   └── ...
+│       └── tsconfig.json
+├── .husky/                 # Git hooks configuration
+├── .nvmrc                  # Node version specification (24.13.0)
+└── package.json
+```
+
+## Features
+
+### Frontend Stack
+
+<CardGroup cols={2}>
+  <Card title="Vite" icon="bolt">
+    Next-generation frontend tooling with lightning-fast HMR
+  </Card>
+  <Card title="React 19" icon="react">
+    Latest version of the world's most popular UI library
+  </Card>
+  <Card title="Tailwind CSS 4" icon="palette">
+    Utility-first CSS with the new high-performance engine
+  </Card>
+  <Card title="Shadcn UI" icon="layer-group">
+    Reusable, accessible, and customizable components
+  </Card>
+</CardGroup>
+
+### Backend Stack
+
+<CardGroup cols={2}>
+  <Card title="Express 5" icon="server">
+    Fast, unopinionated web framework for Node.js
+  </Card>
+  <Card title="TypeScript" icon="code">
+    Full type safety for reliable and maintainable code
+  </Card>
+  <Card title="Node Cluster" icon="microchip">
+    Multi-core system utilization for maximum performance
+  </Card>
+  <Card title="Security" icon="shield">
+    Pre-configured CORS and security best practices
+  </Card>
+</CardGroup>
+
+### DevOps Tools
+
+<Accordion title="Git Hooks & Commit Standards">
+  - **Husky**: Automated pre-commit hooks for code quality
+  - **Commitlint**: Enforces Conventional Commits specification
+  - **Lint-staged**: Runs linters on staged files only
+  - **Gitleaks**: Prevents secrets from being committed
+</Accordion>
+
+<Accordion title="Automation Scripts">
+  TailStack Core includes advanced cross-platform scripts for high-velocity development:
+  
+  - **clean.ps1 / clean.sh**: Two-phase parallel purge of `node_modules` and lock files
+  - **install.ps1 / install.sh**: Intelligent parallel installer with CPU/RAM monitoring
+  
+  Both PowerShell and Bash versions are provided for maximum compatibility.
+</Accordion>
+
+<Accordion title="Documentation">
+  Pre-configured community and contribution documentation:
+  
+  - `CONTRIBUTING.md`: Contribution guidelines and workflows
+  - `CODE_OF_CONDUCT.md`: Community standards
+  - `SECURITY.md`: Security policy and vulnerability reporting
+</Accordion>
+
+## Available Scripts
+
+<CodeGroup>
+
+```bash Development
+pnpm dev
+# Starts both frontend (port 5173) and backend (port 5000) concurrently
+```
+
+```bash Git Hooks Setup
+pnpm husky
+# Initializes Husky git hooks for the repository
+```
+
+</CodeGroup>
+
+## Dependencies
+
+### Production Dependencies
+
+The Core package orchestrates the monorepo and does not have production dependencies itself. Dependencies are managed at the frontend and backend package levels.
+
+### Development Dependencies
+
+```json
+{
+  "@commitlint/cli": "^20.3.1",
+  "@commitlint/config-conventional": "^20.3.1",
+  "concurrently": "^9.2.1",
+  "gitleaks": "^1.0.0",
+  "husky": "^9.1.7",
+  "lint-staged": "^16.2.7",
+  "nodemon": "^3.1.11"
+}
+```
+
+## Agent Skills
+
+<Note>
+  TailStack comes with pre-configured AI agent skills that enhance development with AI-powered tools.
+</Note>
+
+### What are Agent Skills?
+
+Skills are reusable capabilities for AI agents that provide procedural knowledge for specific tasks. They act as plugins that enable AI agents to write, refactor, and optimize code with domain-specific expertise.
+
+Learn more at [skills.sh/docs](https://skills.sh/docs)
+
+### Pre-configured Skills
+
+<Accordion title="Vercel React Best Practices">
+  A comprehensive performance optimization guide for React applications maintained by Vercel.
+  
+  - 57 rules across 8 categories
+  - Prioritized by impact
+  - Guides automated refactoring and code generation
+  
+  [Official Documentation](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)
+</Accordion>
+
+<Accordion title="Node.js Backend Patterns">
+  Comprehensive guidance for building scalable, maintainable, and production-ready Node.js backend applications.
+  
+  - Modern frameworks and architectural patterns
+  - Best practices for Express and Node.js
+  - Production deployment strategies
+  
+  [Official Documentation](https://skills.sh/wshobson/agents/nodejs-backend-patterns)
+</Accordion>
+
+<Accordion title="Tailwind v4 + shadcn/ui Production Stack">
+  Enables AI agents to correctly generate and work with shadcn/ui components and Tailwind CSS v4.
+  
+  - Understands nuances of both technologies
+  - Ensures idiomatic and production-quality results
+  - Component generation and modification
+  
+  [Official Documentation](https://skills.sh/jezweb/claude-skills/tailwind-v4-shadcn)
+</Accordion>
+
+### Supported AI Agents
+
+- Gemini
+- Claude
+- Codex
+- Cursor
+- OpenCode
+- Trae
+
+## Automation Scripts
+
+### Smart Clean Script
+
+<CodeGroup>
+
+```bash Unix/Linux/macOS
+./scripts/clean.sh
+```
+
+```powershell Windows
+.\scripts\clean.ps1
+```
+
+</CodeGroup>
+
+**Features:**
+- High-velocity two-phase parallel purge
+- Removes all `node_modules` and `pnpm-lock.yaml` files
+- Forcefully kills locking processes (Node, VS Code)
+- 3-retry verification loop for stubborn files
+
+### Smart Install Script
+
+<CodeGroup>
+
+```bash Unix/Linux/macOS
+./scripts/install.sh
+```
+
+```powershell Windows
+.\scripts\install.ps1
+```
+
+</CodeGroup>
+
+**Features:**
+- Parallel installation across all monorepo packages
+- Intelligent CPU and RAM monitoring
+- Automatic suspension if system load exceeds 90%
+- Resumes when load drops below 75%
+- Prevents system hangs during heavy dependency resolution
+
+## Environment Configuration
+
+<Card title="Node.js Version" icon="node">
+  TailStack Core is configured to use Node.js **24.13.0** as specified in `.nvmrc`
+</Card>
+
+### Node Version Manager Setup
+
+<CodeGroup>
+
+```bash Using nvm
+nvm use
+# Automatically switches to the version in .nvmrc
+```
+
+```bash Using fnm
+fnm use
+# Fast Node Manager alternative
+```
+
+</CodeGroup>
+
+## Getting Started
+
+### Initial Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd core
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   # or use the smart install script
+   ./scripts/install.sh
+   ```
+
+3. **Initialize git hooks**
+   ```bash
+   pnpm husky
+   ```
+
+4. **Start development**
+   ```bash
+   pnpm dev
+   ```
+
+### Development Workflow
+
+- **Frontend**: Access at `http://localhost:5173`
+- **Backend API**: Running on `http://localhost:5000`
+- Both servers support hot module replacement (HMR)
+
+## Git Workflow
+
+### Commit Standards
+
+TailStack Core enforces Conventional Commits specification:
+
+```bash
+feat: add new feature
+fix: resolve bug
+docs: update documentation
+refactor: restructure code
+test: add tests
+chore: update build scripts
+```
+
+### Pre-commit Checks
+
+Automated checks run on every commit:
+- **Gitleaks**: Scans for hardcoded secrets
+- **Lint-staged**: Runs linters on staged files
+
+<Warning>
+  Commits will be rejected if they contain potential secrets or fail linting checks.
+</Warning>
+
+## Package Manager
+
+TailStack Core uses **pnpm 10.12.1** for efficient dependency management:
+
+- Faster than npm and yarn
+- Disk space efficient with content-addressable storage
+- Strict dependency resolution
+- Built-in monorepo support
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="React Package" icon="react" href="/reference/react-package">
+    Explore the frontend architecture and components
+  </Card>
+  <Card title="Node Package" icon="server" href="/reference/node-package">
+    Learn about the backend API structure
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/deployment">
+    Deploy your TailStack application
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/contributing">
+    Contribute to the TailStack project
+  </Card>
+</CardGroup>

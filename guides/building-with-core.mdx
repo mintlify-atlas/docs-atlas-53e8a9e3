@@ -1,0 +1,407 @@
+---
+title: Building with Core Template
+description: Complete guide to building a full-stack application with the Core monorepo template
+---
+
+The Core template provides a production-ready monorepo architecture for building full-stack ERN (Express-React-Node) applications. This guide walks you through building a complete weather application using the Core template.
+
+## What You'll Build
+
+We'll examine the pre-built Weather API that demonstrates:
+- RESTful API endpoints with Express
+- Type-safe controllers and services
+- React frontend with modern UI components
+- Full-stack TypeScript integration
+- Cluster-based backend for performance
+
+## Project Structure
+
+The Core template organizes your application into clear, maintainable packages:
+
+```bash
+packages/core/
+├── source/
+│   ├── Server/          # Backend Express application
+│   │   ├── src/
+│   │   │   ├── routes/        # API route definitions
+│   │   │   ├── controller/    # Request handlers
+│   │   │   ├── services/      # Business logic
+│   │   │   ├── types/         # TypeScript types
+│   │   │   ├── cluster/       # Node cluster management
+│   │   │   └── config/        # Configuration
+│   │   └── package.json
+│   └── frontend/        # React application
+│       ├── src/
+│       │   ├── pages/         # Route pages
+│       │   ├── components/    # React components
+│       │   ├── api/           # API client
+│       │   ├── hooks/         # Custom hooks
+│       │   └── config/        # Frontend config
+│       └── package.json
+└── package.json
+```
+
+## Understanding the Architecture
+
+### Backend Flow
+
+The backend follows a layered architecture pattern:
+
+<Steps>
+  <Step title="Routes">
+    Routes define API endpoints and map them to controllers.
+    
+    **Example:** `packages/core/source/Server/src/routes/weather.routes.ts:1`
+    
+    ```typescript
+    import { Router } from 'express';
+    import { WeatherController } from '../controller/weather.controller';
+    
+    const router = Router();
+    
+    router.get('/location', WeatherController.getWeatherByLocation);
+    router.get('/coordinates', WeatherController.getWeatherByCoordinates);
+    
+    export default router;
+    ```
+  </Step>
+
+  <Step title="Controllers">
+    Controllers handle HTTP requests, validate input, and call services.
+    
+    **Example:** `packages/core/source/Server/src/controller/weather.controller.ts:8`
+    
+    ```typescript
+    export class WeatherController {
+      static async getWeatherByLocation(req: Request, res: Response): Promise<void> {
+        try {
+          const { location } = req.query;
+    
+          if (!location || typeof location !== 'string') {
+            res.status(400).json({
+              error: 'Bad Request',
+              message: 'Location parameter is required',
+            });
+            return;
+          }
+    
+          const weatherData = await WeatherService.getWeatherByLocation(location);
+          res.json(weatherData);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          res.status(500).json({
+            error: 'Internal Server Error',
+            message: errorMessage,
+          });
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Services">
+    Services contain business logic and external API integrations.
+    
+    **Example:** `packages/core/source/Server/src/services/weather.service.ts:10`
+    
+    ```typescript
+    export class WeatherService {
+      static async getWeatherByLocation(location: string): Promise<WeatherData> {
+        try {
+          const response = await axios.get(
+            `${WEATHER_CONFIG.BASE_URL}/${encodeURIComponent(location)}`,
+            {
+              params: { format: 'j1' },
+              headers: { 'User-Agent': 'TailStack Weather App' },
+            }
+          );
+          
+          // Transform API response to our WeatherData format
+          const current = response.data.current_condition[0];
+          const locationData = response.data.nearest_area[0];
+          
+          return {
+            location: {
+              name: locationData.areaName[0].value,
+              region: locationData.region[0].value,
+              country: locationData.country[0].value,
+              lat: parseFloat(locationData.latitude),
+              lon: parseFloat(locationData.longitude),
+            },
+            current: {
+              temp_c: parseFloat(current.temp_C),
+              temp_f: parseFloat(current.temp_F),
+              humidity: parseFloat(current.humidity),
+              // ... more fields
+            },
+          };
+        } catch (error) {
+          throw new Error('Failed to fetch weather data');
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Frontend Flow
+
+The frontend uses a modern React architecture:
+
+<Steps>
+  <Step title="API Layer">
+    Type-safe API client for backend communication.
+    
+    **Example:** `packages/core/source/frontend/src/api/weather.api.ts:12`
+    
+    ```typescript
+    import axios from 'axios';
+    import { API_CONFIG } from '@/config/api';
+    
+    const apiClient = axios.create({
+      baseURL: API_CONFIG.baseURL,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    export const weatherApi = {
+      getWeatherByLocation: async (location: string): Promise<WeatherData> => {
+        const response = await apiClient.get<WeatherData>(
+          API_CONFIG.endpoints.weather.byLocation,
+          { params: { location } }
+        );
+        return response.data;
+      },
+    };
+    ```
+  </Step>
+
+  <Step title="Custom Hooks">
+    Hooks encapsulate state management and API calls.
+    
+    **Location:** `packages/core/source/frontend/src/hooks/use-weather.ts`
+    
+    ```typescript
+    export function useWeather() {
+      const [weather, setWeather] = useState<WeatherData | null>(null);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState<string | null>(null);
+      
+      const handleSearch = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const data = await weatherApi.getWeatherByLocation(location);
+          setWeather(data);
+        } catch (err) {
+          setError('Failed to fetch weather data');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      return { weather, loading, error, handleSearch };
+    }
+    ```
+  </Step>
+
+  <Step title="Pages & Components">
+    Pages compose UI components with business logic.
+    
+    **Example:** `packages/core/source/frontend/src/pages/weather.tsx:21`
+    
+    ```typescript
+    export function WeatherPage() {
+      const {
+        location,
+        setLocation,
+        weather,
+        loading,
+        error,
+        handleSearch
+      } = useWeather();
+      
+      return (
+        <div className="container py-10">
+          <Card>
+            <CardHeader>
+              <CardTitle>Search Weather</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch} disabled={loading}>
+                Search
+              </Button>
+            </CardContent>
+          </Card>
+          {weather && <WeatherDisplay data={weather} />}
+        </div>
+      );
+    }
+    ```
+  </Step>
+</Steps>
+
+## Running Your Application
+
+<Tabs>
+  <Tab title="Development">
+    Start both frontend and backend in development mode:
+    
+    ```bash
+    # From the core package directory
+    pnpm dev
+    ```
+    
+    This runs:
+    - Frontend: `http://localhost:5173` (Vite dev server)
+    - Backend: `http://localhost:5000` (Express with hot reload)
+    
+    The `dev` script uses `concurrently` to run both:
+    ```json
+    {
+      "scripts": {
+        "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\""
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Backend Only">
+    Start just the backend server:
+    
+    ```bash
+    cd packages/core/source/Server
+    pnpm dev
+    ```
+    
+    Uses `tsx watch` for TypeScript hot reloading:
+    ```json
+    {
+      "scripts": {
+        "dev": "tsx watch src/server.ts"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Frontend Only">
+    Start just the frontend:
+    
+    ```bash
+    cd packages/core/source/frontend
+    pnpm dev
+    ```
+    
+    Vite development server with HMR:
+    ```json
+    {
+      "scripts": {
+        "dev": "vite"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Environment Configuration
+
+### Backend Environment
+
+Create `packages/core/source/Server/.env`:
+
+```bash
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# Cluster Configuration
+WORKERS=0  # 0 = auto-detect CPU cores
+```
+
+<Warning>
+  The backend uses a cluster system for production performance. Set `WORKERS=0` to auto-detect CPU cores, or specify a number for manual control.
+</Warning>
+
+### Frontend Environment
+
+Create `packages/core/source/frontend/.env`:
+
+```bash
+# API Configuration
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+The frontend reads this in `src/config/api.ts:2`:
+
+```typescript
+export const API_CONFIG = {
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+  endpoints: {
+    weather: {
+      byLocation: '/api/weather/location',
+      byCoordinates: '/api/weather/coordinates',
+    },
+  },
+};
+```
+
+## Type Safety
+
+The Core template uses shared TypeScript types between frontend and backend:
+
+```typescript
+// Shared type definition
+export interface WeatherData {
+  location: {
+    name: string;
+    region: string;
+    country: string;
+    lat: number;
+    lon: number;
+    localtime: string;
+  };
+  current: {
+    temp_c: number;
+    temp_f: number;
+    condition: {
+      text: string;
+      icon: string;
+    };
+    humidity: number;
+    wind_kph: number;
+    wind_dir: string;
+    pressure_mb: number;
+    feelslike_c: number;
+    feelslike_f: number;
+    uv: number;
+    vis_km: number;
+  };
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend Development" icon="react" href="/guides/frontend-development">
+    Learn how to add new pages, components, and routing
+  </Card>
+  
+  <Card title="Backend Development" icon="server" href="/guides/backend-development">
+    Create new API routes, controllers, and services
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy your application to production
+  </Card>
+  
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Deep dive into the monorepo architecture
+  </Card>
+</CardGroup>

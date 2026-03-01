@@ -1,0 +1,371 @@
+---
+title: 'Environment Variables'
+description: 'Environment variable configuration and .env file reference'
+---
+
+TailStack uses environment variables to configure server behavior and runtime settings. Variables are loaded using the `dotenv` package.
+
+## Server Environment Variables
+
+The backend server loads environment variables from a `.env` file in the server root directory.
+
+### Configuration Loading
+
+Location: `source/Server/src/config/index.ts`
+
+```typescript
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  port: process.env.PORT || 5000,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  workers: parseInt(process.env.WORKERS || '0', 10),
+};
+```
+
+### Available Variables
+
+<ParamField path="PORT" type="number" default={5000}>
+  Port number for the Express server to listen on
+  
+  **Example:**
+  ```bash
+  PORT=3000
+  ```
+</ParamField>
+
+<ParamField path="NODE_ENV" type="string" default="development">
+  Application environment mode. Common values:
+  - `development` - Development mode with verbose logging
+  - `production` - Production mode with optimizations
+  - `test` - Testing environment
+  
+  **Example:**
+  ```bash
+  NODE_ENV=production
+  ```
+</ParamField>
+
+<ParamField path="CORS_ORIGIN" type="string" default="http://localhost:5173">
+  Allowed origin for Cross-Origin Resource Sharing (CORS). Set to your frontend URL.
+  
+  **Examples:**
+  ```bash
+  # Development
+  CORS_ORIGIN=http://localhost:5173
+  
+  # Production
+  CORS_ORIGIN=https://app.example.com
+  
+  # Multiple origins (comma-separated)
+  CORS_ORIGIN=https://app.example.com,https://admin.example.com
+  ```
+</ParamField>
+
+<ParamField path="WORKERS" type="number" default={0}>
+  Number of worker processes to spawn. When set to 0, runs in single-process mode.
+  
+  **Example:**
+  ```bash
+  # Single process
+  WORKERS=0
+  
+  # Multi-process (cluster mode)
+  WORKERS=4
+  ```
+</ParamField>
+
+### Node Template Configuration
+
+The Node template includes a constants file with default values:
+
+Location: `packages/node/src/config/index.ts`
+
+```typescript
+import dotenv from 'dotenv';
+import { DEFAULT_PORT, DEFAULT_NODE_ENV, DEFAULT_CORS_ORIGIN } from '../constant';
+
+dotenv.config();
+
+export const config = {
+  port: process.env.PORT || DEFAULT_PORT,
+  nodeEnv: process.env.NODE_ENV || DEFAULT_NODE_ENV,
+  corsOrigin: process.env.CORS_ORIGIN || DEFAULT_CORS_ORIGIN,
+};
+```
+
+## .env File Template
+
+Create a `.env` file in your server directory:
+
+```bash
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# Worker Processes
+WORKERS=0
+
+# Add your custom environment variables below:
+# DATABASE_URL=postgresql://...
+# JWT_SECRET=your-secret-key
+# API_KEY=your-api-key
+```
+
+<Warning>
+Never commit your `.env` file to version control. Add it to `.gitignore` to prevent exposing sensitive data.
+</Warning>
+
+## Frontend Environment Variables
+
+Vite exposes environment variables to the client with the `VITE_` prefix.
+
+### Vite Environment Variables
+
+Create a `.env` file in your frontend directory:
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:5000
+VITE_API_TIMEOUT=30000
+
+# Feature Flags
+VITE_ENABLE_ANALYTICS=false
+VITE_ENABLE_DEBUG=true
+
+# Third-party Services
+VITE_GOOGLE_MAPS_API_KEY=your-key-here
+```
+
+### Accessing Frontend Variables
+
+```typescript
+// In your React components:
+const apiUrl = import.meta.env.VITE_API_URL;
+const isDev = import.meta.env.DEV;
+const isProd = import.meta.env.PROD;
+const mode = import.meta.env.MODE;
+
+// Example usage:
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+export const apiClient = axios.create({
+  baseURL: API_BASE,
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000'),
+});
+```
+
+### Built-in Vite Variables
+
+<ParamField path="import.meta.env.MODE" type="string">
+  The mode the app is running in (`development`, `production`, etc.)
+</ParamField>
+
+<ParamField path="import.meta.env.DEV" type="boolean">
+  Whether the app is running in development mode
+</ParamField>
+
+<ParamField path="import.meta.env.PROD" type="boolean">
+  Whether the app is running in production mode
+</ParamField>
+
+<ParamField path="import.meta.env.BASE_URL" type="string">
+  The base URL the app is being served from
+</ParamField>
+
+<Warning>
+**Security Alert:** Never prefix sensitive secrets with `VITE_`. These variables are embedded in the client bundle and visible to users.
+
+❌ **DON'T:**
+```bash
+VITE_JWT_SECRET=super-secret  # Exposed to client!
+```
+
+✅ **DO:**
+```bash
+JWT_SECRET=super-secret  # Server-only
+VITE_API_URL=https://api.example.com  # Safe to expose
+```
+</Warning>
+
+## Environment-Specific Files
+
+Vite supports multiple environment files:
+
+```
+.env                # Loaded in all cases
+.env.local          # Loaded in all cases, ignored by git
+.env.development    # Only loaded in development
+.env.production     # Only loaded in production
+```
+
+### Priority Order
+
+1. `.env.[mode].local` (highest priority)
+2. `.env.[mode]`
+3. `.env.local`
+4. `.env` (lowest priority)
+
+### Example Setup
+
+```bash
+# .env (committed to git)
+VITE_API_URL=http://localhost:5000
+
+# .env.local (NOT committed, user-specific overrides)
+VITE_API_URL=http://localhost:3001
+
+# .env.production (production defaults)
+VITE_API_URL=https://api.production.com
+```
+
+## Best Practices
+
+### 1. Never Commit Secrets
+
+```bash
+# .gitignore
+.env
+.env.local
+.env.*.local
+```
+
+### 2. Use .env.example
+
+Create a template for other developers:
+
+```bash
+# .env.example
+PORT=5000
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:5173
+WORKERS=0
+
+# Add your configuration:
+# DATABASE_URL=
+# JWT_SECRET=
+```
+
+### 3. Validate Required Variables
+
+```typescript
+// config/index.ts
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'] as const;
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
+
+export const config = {
+  port: parseInt(process.env.PORT || '5000', 10),
+  databaseUrl: process.env.DATABASE_URL!,
+  jwtSecret: process.env.JWT_SECRET!,
+};
+```
+
+### 4. Type-Safe Environment Variables
+
+```typescript
+// env.d.ts
+interface ImportMetaEnv {
+  readonly VITE_API_URL: string;
+  readonly VITE_API_TIMEOUT: string;
+  readonly VITE_ENABLE_ANALYTICS: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+```
+
+### 5. Use Descriptive Names
+
+```bash
+# ❌ Bad
+URL=http://localhost:5000
+KEY=abc123
+
+# ✅ Good
+VITE_API_BASE_URL=http://localhost:5000
+VITE_GOOGLE_MAPS_API_KEY=abc123
+```
+
+## Production Deployment
+
+### Server Environment Variables
+
+Set environment variables in your hosting platform:
+
+```bash
+# Example: Railway, Render, Heroku, etc.
+NODE_ENV=production
+PORT=8080
+CORS_ORIGIN=https://app.example.com
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-production-secret
+```
+
+### Frontend Environment Variables
+
+Vite embeds `VITE_*` variables during build:
+
+```bash
+# Build with production environment
+pnpm build
+
+# Or specify custom mode
+vite build --mode staging
+```
+
+<Note>
+Frontend variables are embedded at **build time**, not runtime. To change them, you must rebuild the application.
+</Note>
+
+## Troubleshooting
+
+### Variables Not Loading
+
+1. **Check file location** - `.env` should be in the same directory as `package.json`
+2. **Restart dev server** - Changes require restart
+3. **Check variable names** - Frontend vars must start with `VITE_`
+4. **Verify quotes** - No quotes needed: `PORT=5000` not `PORT="5000"`
+
+### CORS Issues
+
+```typescript
+// Verify CORS_ORIGIN matches your frontend URL exactly
+console.log('CORS Origin:', process.env.CORS_ORIGIN);
+```
+
+### Type Errors
+
+```typescript
+// Parse numeric values
+const port = parseInt(process.env.PORT || '5000', 10);
+const timeout = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000', 10);
+
+// Parse boolean values
+const enableDebug = import.meta.env.VITE_ENABLE_DEBUG === 'true';
+```
+
+## Security Checklist
+
+- [ ] `.env` files are in `.gitignore`
+- [ ] No `VITE_` prefix on secrets
+- [ ] `.env.example` provided for team
+- [ ] Production secrets managed via hosting platform
+- [ ] Required variables validated on startup
+- [ ] No hardcoded secrets in source code
+- [ ] Different secrets for development and production

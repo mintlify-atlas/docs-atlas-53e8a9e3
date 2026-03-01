@@ -1,0 +1,556 @@
+---
+title: Tailwind v4 + Shadcn UI
+description: Production-ready setup for Tailwind CSS v4 with shadcn/ui using CSS-first architecture
+---
+
+## Overview
+
+The **Tailwind v4 + Shadcn UI** skill provides a production-tested setup pattern for Tailwind CSS v4 with shadcn/ui components. This skill implements the new CSS-first architecture using `@theme inline` patterns and prevents 8 documented errors that commonly occur during migration and setup.
+
+<Info>
+  **Production-Tested**: This skill is battle-tested in production at [WordPress Auditor](https://wordpress-auditor.webfonts.workers.dev)
+</Info>
+
+## What This Skill Does
+
+The skill guides AI agents through the complete Tailwind v4 + shadcn/ui setup:
+
+- **Four-Step Architecture** - CSS variables → Tailwind mapping → base styles → automatic dark mode
+- **Prevents 8 Errors** - Documented solutions for common setup failures
+- **Dark Mode Setup** - Complete ThemeProvider and toggle implementation
+- **Migration Guide** - v3 → v4 migration with community-tested patterns
+- **OKLCH Color Space** - Modern color system with automatic fallbacks
+- **Built-in Features** - Container queries, line-clamp (no plugins needed)
+
+## Location in TailStack Packages
+
+The Tailwind v4 + Shadcn skill is available in the React package:
+
+```bash
+# Agent skill files
+packages/react/.agent/skills/tailwind-v4-shadcn/
+packages/react/.claude/skills/tailwind-v4-shadcn/
+packages/react/.cursor/skills/tailwind-v4-shadcn/
+packages/react/.opencode/skills/tailwind-v4-shadcn/
+```
+
+## Skill Structure
+
+<Card title="Skill Contents" icon="folder">
+  Each skill directory contains:
+  
+  - **SKILL.md** - Complete setup guide (666 lines)
+  - **templates/** - Production-ready file templates
+    - `index.css` - Complete CSS with color variables
+    - `components.json` - shadcn/ui v4 configuration
+    - `vite.config.ts` - Vite + Tailwind plugin setup
+    - `theme-provider.tsx` - Dark mode provider
+    - `utils.ts` - cn() utility function
+  - **references/** - Deep dive documentation
+    - `architecture.md` - Four-step pattern explanation
+    - `dark-mode.md` - Complete dark mode guide
+    - `common-gotchas.md` - Troubleshooting
+    - `migration-guide.md` - v3 → v4 migration
+  - **commands/** - Setup automation
+    - `setup.md` - Installation commands
+</Card>
+
+## The Four-Step Architecture
+
+<Warning>
+  **Critical**: You must follow all four steps in order. Skipping any step will break your theme.
+</Warning>
+
+<Steps>
+  <Step title="Step 1: Define CSS Variables at Root">
+    Define color variables at the root level (NOT inside `@layer base`).
+    
+    ```css
+    /* src/index.css */
+    @import "tailwindcss";
+    @import "tw-animate-css";
+    
+    :root {
+      --background: hsl(0 0% 100%);      /* hsl() wrapper required */
+      --foreground: hsl(222.2 84% 4.9%);
+      --primary: hsl(221.2 83.2% 53.3%);
+    }
+    
+    .dark {
+      --background: hsl(222.2 84% 4.9%);
+      --foreground: hsl(210 40% 98%);
+      --primary: hsl(217.2 91.2% 59.8%);
+    }
+    ```
+  </Step>
+  
+  <Step title="Step 2: Map Variables to Tailwind Utilities">
+    Use `@theme inline` to generate utility classes.
+    
+    ```css
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-primary: var(--primary);
+      /* map ALL CSS variables */
+    }
+    ```
+    
+    <Note>Without this step, utilities like `bg-background` won't exist.</Note>
+  </Step>
+  
+  <Step title="Step 3: Apply Base Styles">
+    Reference variables directly in base styles.
+    
+    ```css
+    @layer base {
+      body {
+        background-color: var(--background);  /* NO hsl() wrapper */
+        color: var(--foreground);
+      }
+    }
+    ```
+    
+    <Warning>Never double-wrap: `hsl(var(--background))` is incorrect</Warning>
+  </Step>
+  
+  <Step title="Step 4: Result - Automatic Dark Mode">
+    Your components now automatically switch themes.
+    
+    ```tsx
+    <div className="bg-background text-foreground">
+      {/* No dark: variants needed */}
+    </div>
+    ```
+  </Step>
+</Steps>
+
+## Common Errors Prevented
+
+This skill prevents 8 documented errors:
+
+<AccordionGroup>
+  <Accordion title="Error #1: tw-animate-css Import Error">
+    **Error**: "Cannot find module 'tailwindcss-animate'"
+    
+    **Solution**:
+    ```bash
+    # ✅ Correct for v4
+    pnpm add -D tw-animate-css
+    
+    # ❌ Wrong (v3 only)
+    npm install tailwindcss-animate
+    ```
+    
+    Add to `src/index.css`:
+    ```css
+    @import "tailwindcss";
+    @import "tw-animate-css";
+    ```
+  </Accordion>
+  
+  <Accordion title="Error #2: Colors Not Working">
+    **Error**: `bg-primary` doesn't apply styles
+    
+    **Cause**: Missing `@theme inline` mapping
+    
+    **Solution**: Add the `@theme inline` block (Step 2 of the architecture)
+  </Accordion>
+  
+  <Accordion title="Error #3: Dark Mode Not Switching">
+    **Error**: Theme stays light or dark
+    
+    **Cause**: Missing ThemeProvider
+    
+    **Solution**: Use the template from `templates/theme-provider.tsx` and wrap your app
+  </Accordion>
+  
+  <Accordion title="Error #4: Duplicate @layer base">
+    **Error**: "Duplicate @layer base" in console
+    
+    **Cause**: shadcn init adds `@layer base` - don't add another
+    
+    **Solution**: Use single `@layer base` block for all base styles
+  </Accordion>
+  
+  <Accordion title="Error #5: Build Fails with tailwind.config.ts">
+    **Error**: "Unexpected config file"
+    
+    **Cause**: v4 doesn't use `tailwind.config.ts` (v3 legacy)
+    
+    **Solution**:
+    ```bash
+    rm tailwind.config.ts
+    ```
+    All configuration happens in CSS using `@theme` directive.
+  </Accordion>
+  
+  <Accordion title="Error #6: @theme inline Breaks Multi-Theme">
+    **Issue**: Dark mode doesn't switch when using custom variants
+    
+    **Cause**: `@theme inline` bakes VALUES at build time
+    
+    **Solution**: Use `@theme` (without inline) for multi-theme setups:
+    ```css
+    @theme {
+      --color-text-primary: var(--color-slate-900);
+    }
+    
+    @layer theme {
+      [data-mode="dark"] {
+        --color-text-primary: var(--color-white);
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Error #7: @apply Breaking (v4 Change)">
+    **Error**: `Cannot apply unknown utility class`
+    
+    **Cause**: v4 doesn't support `@apply` with `@layer base/components`
+    
+    **Migration**:
+    ```css
+    /* ❌ v3 pattern */
+    @layer components {
+      .custom-button {
+        @apply px-4 py-2 bg-blue-500;
+      }
+    }
+    
+    /* ✅ v4 pattern */
+    @utility custom-button {
+      @apply px-4 py-2 bg-blue-500;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Error #8: @layer base Styles Not Applying">
+    **Issue**: Base styles seem ignored
+    
+    **Cause**: v4 uses native CSS layers - if not ordered, utilities override base
+    
+    **Solution**: Define layer order explicitly or don't use `@layer base`
+    ```css
+    @import "tailwindcss/theme.css" layer(theme);
+    @import "tailwindcss/base.css" layer(base);
+    @import "tailwindcss/utilities.css" layer(utilities);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Quick Setup Guide
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    pnpm add tailwindcss @tailwindcss/vite
+    pnpm add -D @types/node tw-animate-css
+    pnpm dlx shadcn@latest init
+    ```
+  </Step>
+  
+  <Step title="Configure Vite">
+    ```typescript
+    // vite.config.ts
+    import { defineConfig } from 'vite'
+    import react from '@vitejs/plugin-react'
+    import tailwindcss from '@tailwindcss/vite'
+    import path from 'path'
+    
+    export default defineConfig({
+      plugins: [react(), tailwindcss()],
+      resolve: { alias: { '@': path.resolve(__dirname, './src') } }
+    })
+    ```
+  </Step>
+  
+  <Step title="Update components.json">
+    ```json
+    {
+      "tailwind": {
+        "config": "",              // ← Empty for v4
+        "css": "src/index.css",
+        "baseColor": "slate",
+        "cssVariables": true
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Delete Legacy Config">
+    ```bash
+    rm tailwind.config.ts  # v4 doesn't use this
+    ```
+  </Step>
+  
+  <Step title="Follow Four-Step Architecture">
+    Implement all four steps as documented above in your `src/index.css`
+  </Step>
+</Steps>
+
+## Dark Mode Implementation
+
+<CodeGroup>
+```tsx Theme Provider
+// src/components/theme-provider.tsx
+import { createContext, useContext, useEffect, useState } from 'react'
+
+type Theme = 'dark' | 'light' | 'system'
+
+type ThemeProviderProps = {
+  children: React.ReactNode
+  defaultTheme?: Theme
+  storageKey?: string
+}
+
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
+
+export function ThemeProvider({
+  children,
+  defaultTheme = 'system',
+  storageKey = 'vite-ui-theme',
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  )
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    root.classList.remove('light', 'dark')
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+      root.classList.add(systemTheme)
+      return
+    }
+
+    root.classList.add(theme)
+  }, [theme])
+
+  const value = {
+    theme,
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme)
+      setTheme(theme)
+    },
+  }
+
+  return (
+    <ThemeProviderContext.Provider {...props} value={value}>
+      {children}
+    </ThemeProviderContext.Provider>
+  )
+}
+```
+
+```tsx App Wrapper
+// src/main.tsx
+import { ThemeProvider } from '@/components/theme-provider'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <App />
+  </ThemeProvider>
+)
+```
+</CodeGroup>
+
+## What's New in Tailwind v4
+
+<CardGroup cols={2}>
+  <Card title="OKLCH Color Space" icon="palette">
+    **Perceptually uniform colors**
+    
+    - Better gradients (no muddy middle)
+    - Wider color gamut
+    - Automatic sRGB fallbacks
+    - 93.1% browser support
+    
+    ```css
+    @theme {
+      --color-brand: oklch(0.7 0.15 250);
+    }
+    ```
+  </Card>
+  
+  <Card title="Built-in Features" icon="star">
+    **No plugins needed**
+    
+    - Container queries built-in
+    - Line clamp built-in
+    - Typography plugin available
+    - Forms plugin available
+    
+    ```tsx
+    <div className="@container">
+      <div className="@md:text-lg">Responsive</div>
+    </div>
+    ```
+  </Card>
+</CardGroup>
+
+### Container Queries (Built-in)
+
+```tsx
+<div className="@container">
+  <div className="@md:text-lg @lg:grid-cols-2">
+    Content responds to container width, not viewport
+  </div>
+</div>
+```
+
+### Line Clamp (Built-in)
+
+```tsx
+<p className="line-clamp-3">Truncate to 3 lines with ellipsis...</p>
+<p className="line-clamp-[8]">Arbitrary values supported</p>
+<p className="line-clamp-(--teaser-lines)">CSS variable support</p>
+```
+
+## Migration from v3
+
+<Card title="Key Changes" icon="arrows-rotate">
+  1. **Delete** `tailwind.config.ts`
+  2. **Move theme** to CSS with `@theme inline`
+  3. **Replace** `tailwindcss-animate` with `tw-animate-css`
+  4. **Update plugins**: `require()` → `@plugin`
+  5. **Use Vite plugin** instead of PostCSS (recommended)
+  
+  <Warning>
+    **Automated migration tool often fails** - Manual migration recommended
+  </Warning>
+</Card>
+
+### Default Element Styles Removed
+
+Tailwind v4 takes a minimal approach - headings, lists, buttons lose default styles.
+
+**Solution 1: Typography plugin**
+```bash
+pnpm add -D @tailwindcss/typography
+```
+```css
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+```
+```tsx
+<article className="prose dark:prose-invert">
+  {/* All elements styled automatically */}
+</article>
+```
+
+**Solution 2: Custom base styles**
+```css
+@layer base {
+  h1 { @apply text-4xl font-bold mb-4; }
+  h2 { @apply text-3xl font-bold mb-3; }
+  ul { @apply list-disc pl-6 mb-4; }
+}
+```
+
+## Using with AI Agents
+
+### Claude Desktop & Claude.ai
+
+<Steps>
+  <Step title="Access Templates">
+    Navigate to `packages/react/.claude/skills/tailwind-v4-shadcn/templates/`
+  </Step>
+  
+  <Step title="Request Setup">
+    Example: "Set up Tailwind v4 with shadcn/ui following the skill templates"
+  </Step>
+  
+  <Step title="Reference Rules">
+    Example: "Fix this Tailwind setup using the common-gotchas guide"
+  </Step>
+</Steps>
+
+### Cursor
+
+<Steps>
+  <Step title="Add to Rules">
+    Include in `.cursorrules`:
+    ```
+    When setting up Tailwind v4, follow .cursor/skills/tailwind-v4-shadcn/SKILL.md
+    ```
+  </Step>
+  
+  <Step title="Use Templates">
+    Request specific templates: "Use the theme-provider template from tailwind-v4-shadcn"
+  </Step>
+</Steps>
+
+### OpenCode
+
+<Steps>
+  <Step title="Skill Available">
+    Automatically loaded from `packages/react/.opencode/skills/tailwind-v4-shadcn/`
+  </Step>
+  
+  <Step title="Request Setup">
+    Example: "Initialize Tailwind v4 with dark mode using the skill templates"
+  </Step>
+</Steps>
+
+## Setup Checklist
+
+<Card title="Pre-Flight Checklist" icon="list-check">
+  - [ ] `@tailwindcss/vite` installed (NOT postcss)
+  - [ ] `vite.config.ts` uses `tailwindcss()` plugin
+  - [ ] `components.json` has `"config": ""`
+  - [ ] NO `tailwind.config.ts` exists
+  - [ ] `src/index.css` follows 4-step pattern:
+    - [ ] `:root`/`.dark` at root level (not in @layer)
+    - [ ] Colors wrapped with `hsl()`
+    - [ ] `@theme inline` maps all variables
+    - [ ] `@layer base` uses unwrapped variables
+  - [ ] ThemeProvider wraps app
+  - [ ] Theme toggle works
+</Card>
+
+## Critical Rules
+
+<CardGroup cols={2}>
+  <Card title="✅ Always Do" icon="check">
+    1. Wrap colors with `hsl()` in `:root`/`.dark`
+    2. Use `@theme inline` to map CSS variables
+    3. Set `"tailwind.config": ""` in components.json
+    4. Delete `tailwind.config.ts`
+    5. Use `@tailwindcss/vite` plugin
+  </Card>
+  
+  <Card title="❌ Never Do" icon="xmark">
+    1. Put `:root`/`.dark` inside `@layer base`
+    2. Use `.dark { @theme { } }` pattern
+    3. Double-wrap: `hsl(var(--background))`
+    4. Use `tailwind.config.ts` for theme
+    5. Use `@apply` directive (deprecated)
+  </Card>
+</CardGroup>
+
+## Official Documentation
+
+<Card title="Learn More" icon="book">
+  - **Skills.sh**: [tailwind-v4-shadcn](https://skills.sh/skill/tailwind-v4-shadcn)
+  - **shadcn/ui Vite Setup**: [Official Guide](https://ui.shadcn.com/docs/installation/vite)
+  - **shadcn/ui Tailwind v4**: [Migration Guide](https://ui.shadcn.com/docs/tailwind-v4)
+  - **Tailwind v4 Docs**: [Official Documentation](https://tailwindcss.com/docs)
+</Card>
+
+## Related Skills
+
+- [Vercel React Best Practices](/reference/vercel-react-practices) - For performance optimization
+- [Node.js Backend Patterns](/reference/nodejs-patterns) - For backend setup
+
+## Version Information
+
+- **Skill Version**: 3.0.0
+- **Tailwind CSS**: 4.1.18 (Latest)
+- **Production**: WordPress Auditor
+- **Last Updated**: January 20, 2026
+- **Browser Support**: Chrome 111+, Firefox 113+, Safari 15.4+

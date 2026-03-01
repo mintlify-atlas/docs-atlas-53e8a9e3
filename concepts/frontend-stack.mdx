@@ -1,0 +1,457 @@
+---
+title: Frontend Stack
+description: Vite, React 19, Tailwind CSS 4, Shadcn UI, React Router, and Sonner toast notifications
+---
+
+TailStack's frontend architecture combines cutting-edge technologies for a lightning-fast development experience and exceptional user interfaces.
+
+## Technology Stack
+
+<CardGroup cols={2}>
+  <Card title="Vite 7" icon="bolt">
+    Next-generation frontend tooling with instant HMR
+  </Card>
+  <Card title="React 19" icon="react">
+    Latest React with improved performance and features
+  </Card>
+  <Card title="Tailwind CSS 4" icon="palette">
+    Utility-first CSS with OKLCH color space
+  </Card>
+  <Card title="Shadcn UI" icon="layer-group">
+    Accessible, customizable component system
+  </Card>
+</CardGroup>
+
+## Package Versions
+
+Extracted from `packages/core/source/frontend/package.json`:
+
+```json package.json
+{
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "axios": "^1.7.9",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.12.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4"
+  }
+}
+```
+
+## Vite Configuration
+
+TailStack uses Vite 7 with optimized settings for React development:
+
+```typescript vite.config.ts
+import path from "path"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig } from "vite"
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+})
+```
+
+<Accordion title="Configuration Breakdown">
+  **Plugins:**
+  - `@vitejs/plugin-react` - Enables React Fast Refresh and JSX transformation
+  - `@tailwindcss/vite` - Tailwind CSS 4 integration (replaces PostCSS setup)
+  
+  **Path Aliases:**
+  - `@/*` maps to `./src/*` for cleaner imports
+  - Example: `import { Button } from '@/components/ui/button'`
+</Accordion>
+
+## TypeScript Configuration
+
+The frontend uses project references for better build performance:
+
+```json tsconfig.json
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+<Info>
+  Project references enable faster incremental builds by splitting app code (`tsconfig.app.json`) from build tooling (`tsconfig.node.json`).
+</Info>
+
+## React 19 Features
+
+TailStack leverages React 19's latest capabilities:
+
+### Server Components Support
+
+While TailStack uses Vite (not Next.js), the architecture is compatible with future React Server Component adoption:
+
+```tsx
+// Ready for RSC migration when needed
+import { Suspense } from 'react'
+
+function UserProfile({ userId }: { userId: string }) {
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <UserData userId={userId} />
+    </Suspense>
+  )
+}
+```
+
+### Automatic Batching
+
+React 19 automatically batches state updates for better performance:
+
+```tsx
+function Counter() {
+  const [count, setCount] = useState(0)
+  const [flag, setFlag] = useState(false)
+  
+  // Both updates batched automatically - single re-render
+  const handleClick = () => {
+    setCount(c => c + 1)
+    setFlag(f => !f)
+  }
+}
+```
+
+## Tailwind CSS 4
+
+TailStack uses Tailwind CSS 4 with the latest features and improvements.
+
+### OKLCH Color Space
+
+Tailwind 4 uses OKLCH for perceptually uniform colors:
+
+```css
+/* Automatic fallbacks for older browsers */
+.bg-blue-500 {
+  background-color: #3b82f6; /* sRGB fallback */
+  background-color: oklch(0.6 0.24 264); /* Modern browsers */
+}
+```
+
+<Tip>
+  OKLCH provides better gradients, more vibrant colors, and consistent perceived lightness across hues.
+</Tip>
+
+### Vite Plugin Integration
+
+Tailwind 4 replaces PostCSS with a native Vite plugin:
+
+```typescript
+import tailwindcss from "@tailwindcss/vite"
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+```
+
+**Benefits:**
+- Faster builds (no PostCSS overhead)
+- Better HMR performance
+- Simpler configuration
+
+### CSS-First Configuration
+
+No `tailwind.config.js` - configuration happens in CSS:
+
+```css index.css
+@import "tailwindcss";
+
+@theme {
+  --color-brand: oklch(0.7 0.15 250);
+  --font-display: "Inter", sans-serif;
+}
+```
+
+## Shadcn UI Integration
+
+TailStack includes Shadcn UI with Tailwind 4 compatibility.
+
+### Component Architecture
+
+Shadcn UI provides **copy-paste components** (not a package dependency):
+
+```bash
+# Add components to your project
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add dialog
+pnpm dlx shadcn@latest add dropdown-menu
+```
+
+Components are added to `src/components/ui/` and can be fully customized.
+
+### Utility Functions
+
+```typescript utils.ts
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+```
+
+<Accordion title="Why cn() Helper?">
+  The `cn()` function combines:
+  - **clsx**: Conditional class names
+  - **twMerge**: Intelligent Tailwind class merging
+  
+  Example:
+  ```tsx
+  <Button className={cn(
+    "bg-primary",
+    isLoading && "opacity-50",
+    className // User-provided classes override defaults
+  )} />
+  ```
+</Accordion>
+
+### Class Variance Authority
+
+Shadcn UI uses CVA for type-safe variant props:
+
+```tsx
+import { cva } from "class-variance-authority"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground",
+        destructive: "bg-destructive text-destructive-foreground",
+        outline: "border border-input",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+```
+
+## React Router
+
+TailStack uses **React Router 7** for client-side routing:
+
+```tsx
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Layout />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: "about", element: <About /> },
+      { path: "users/:id", element: <UserProfile /> },
+    ],
+  },
+])
+
+function App() {
+  return <RouterProvider router={router} />
+}
+```
+
+### Navigation Features
+
+```tsx
+import { Link, useNavigate, useParams } from 'react-router-dom'
+
+function Example() {
+  const navigate = useNavigate()
+  const { id } = useParams()
+  
+  return (
+    <div>
+      <Link to="/users/123">User Profile</Link>
+      <button onClick={() => navigate('/dashboard')}>
+        Go to Dashboard
+      </button>
+    </div>
+  )
+}
+```
+
+## Sonner Toast Notifications
+
+Sonner provides beautiful, accessible toast notifications:
+
+```tsx
+import { toast, Toaster } from 'sonner'
+
+function App() {
+  return (
+    <>
+      <YourApp />
+      <Toaster position="top-right" />
+    </>
+  )
+}
+
+function Example() {
+  const handleSave = async () => {
+    try {
+      await saveData()
+      toast.success('Saved successfully!')
+    } catch (error) {
+      toast.error('Failed to save', {
+        description: error.message
+      })
+    }
+  }
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="Success Toast">
+    ```tsx
+    toast.success('Profile updated')
+    ```
+  </Card>
+  <Card title="Error Toast">
+    ```tsx
+    toast.error('Something went wrong')
+    ```
+  </Card>
+  <Card title="Loading Toast">
+    ```tsx
+    toast.loading('Uploading...')
+    ```
+  </Card>
+  <Card title="Promise Toast">
+    ```tsx
+    toast.promise(uploadFile(), {
+      loading: 'Uploading...',
+      success: 'Uploaded!',
+      error: 'Failed to upload'
+    })
+    ```
+  </Card>
+</CardGroup>
+
+## Lucide React Icons
+
+TailStack includes Lucide React for consistent, beautiful icons:
+
+```tsx
+import { Check, X, Menu, Settings } from 'lucide-react'
+
+function IconExample() {
+  return (
+    <div>
+      <Check className="h-4 w-4 text-green-500" />
+      <X className="h-4 w-4 text-red-500" />
+      <Menu className="h-6 w-6" />
+      <Settings size={24} strokeWidth={1.5} />
+    </div>
+  )
+}
+```
+
+<Tip>
+  Lucide icons are tree-shakeable - only imported icons are included in the bundle.
+</Tip>
+
+## Development Scripts
+
+```json package.json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  }
+}
+```
+
+### Running the Frontend
+
+```bash
+# Development server with HMR
+pnpm dev
+
+# Type-check and build for production
+pnpm build
+
+# Preview production build locally
+pnpm preview
+
+# Lint code
+pnpm lint
+```
+
+## Best Practices
+
+<Accordion title="Component Organization">
+  ```
+  src/
+  ├── components/
+  │   ├── ui/              # Shadcn UI components
+  │   │   ├── button.tsx
+  │   │   ├── dialog.tsx
+  │   │   └── dropdown-menu.tsx
+  │   └── features/        # Feature-specific components
+  │       ├── UserProfile/
+  │       └── Dashboard/
+  ├── lib/                 # Utilities
+  │   └── utils.ts
+  ├── hooks/               # Custom React hooks
+  └── pages/               # Route components
+  ```
+</Accordion>
+
+<Accordion title="Performance Tips">
+  - Use React.lazy() for code splitting large components
+  - Leverage Vite's automatic code splitting for routes
+  - Optimize images with modern formats (WebP, AVIF)
+  - Use Suspense boundaries for loading states
+  - Minimize bundle size with tree-shaking
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend Stack" icon="server" href="/concepts/backend-stack">
+    Learn about the Express 5 backend
+  </Card>
+  <Card title="Agent Skills" icon="wand-magic-sparkles" href="/concepts/agent-skills">
+    Explore pre-configured AI skills
+  </Card>
+</CardGroup>

@@ -1,0 +1,287 @@
+---
+title: Environment Setup
+description: Set up your development environment for TailStack with Node.js, PNPM, and Git hooks
+---
+
+## Prerequisites
+
+Before you begin development with TailStack, ensure your environment meets the following requirements:
+
+### Node.js Version
+
+TailStack requires **Node.js 24.13.0** for optimal compatibility. The repository includes version configuration files to ensure consistency across all developers:
+
+- `.nvmrc` - For NVM (Node Version Manager) users
+- `.node-version` - For asdf and other version managers
+
+Both files specify:
+```
+24.13.0
+```
+
+<Steps>
+
+### Install Node.js 24.13.0
+
+<Tabs>
+  <Tab title="Using NVM (Recommended)">
+    ```bash
+    # Install and use the correct Node version
+    nvm install
+    nvm use
+    ```
+    The `.nvmrc` file will automatically be detected.
+  </Tab>
+  
+  <Tab title="Using asdf">
+    ```bash
+    # Install and set the Node version
+    asdf install nodejs 24.13.0
+    asdf local nodejs 24.13.0
+    ```
+  </Tab>
+  
+  <Tab title="Manual Installation">
+    Download Node.js 24.13.0 from the [official website](https://nodejs.org/).
+  </Tab>
+</Tabs>
+
+### Install PNPM
+
+TailStack uses **PNPM 10.12.1** as its package manager, specified in `package.json`:
+
+```json
+"packageManager": "pnpm@10.12.1"
+```
+
+Install PNPM globally:
+
+```bash
+# Using npm
+npm install -g pnpm@10.12.1
+
+# Or using Corepack (recommended)
+corepack enable
+corepack prepare pnpm@10.12.1 --activate
+```
+
+<Tip>
+Corepack is included with Node.js 16.13+ and automatically manages package manager versions based on your `package.json`.
+</Tip>
+
+### Verify Installation
+
+Check that everything is installed correctly:
+
+```bash
+node --version  # Should output: v24.13.0
+pnpm --version  # Should output: 10.12.1
+```
+
+</Steps>
+
+## PNPM Configuration
+
+TailStack includes a `.npmrc` file at the root with the following settings:
+
+```ini
+auto-install-peers=true
+strict-peer-dependencies=true
+```
+
+### Configuration Explained
+
+- **`auto-install-peers=true`** - Automatically installs peer dependencies, reducing manual intervention
+- **`strict-peer-dependencies=true`** - Enforces strict peer dependency resolution to catch version conflicts early
+
+<Warning>
+Do not modify the `.npmrc` file unless you understand the implications. These settings ensure consistent dependency resolution across the monorepo.
+</Warning>
+
+## Git Hooks Setup
+
+TailStack uses **Husky** and **lint-staged** to enforce code quality and security standards automatically.
+
+### Initialize Husky
+
+After cloning the repository, initialize Husky hooks:
+
+```bash
+pnpm husky
+```
+
+This command runs `pnpm exec husky init` and sets up the Git hooks in the `.husky/` directory.
+
+### Pre-commit Hook
+
+The pre-commit hook (`.husky/pre-commit`) runs security checks before every commit:
+
+```bash
+#!/usr/bin/env sh
+
+if [ -d "/c/ProgramData/chocolatey/bin" ]; then
+  export PATH="/c/ProgramData/chocolatey/bin:$PATH"
+fi
+
+echo "🔍 Running pre-commit security checks..."
+pnpm lint-staged
+```
+
+**What it does:**
+- Runs **Gitleaks** to scan staged files for secrets and credentials
+- Automatically redacts sensitive information if detected
+- Prevents commits containing secrets from entering your Git history
+
+### Commit Message Hook
+
+The commit-msg hook (`.husky/commit-msg`) validates commit message format:
+
+```bash
+#!/usr/bin/env sh
+
+pnpm commitlint --edit "$1"
+```
+
+**What it does:**
+- Enforces [Conventional Commits](https://www.conventionalcommits.org/) format
+- Ensures consistent commit history for automated changelog generation
+- Validates against rules defined in `commitlint.config.cjs`
+
+### Commitlint Configuration
+
+TailStack extends the conventional commits standard with custom limits:
+
+```javascript
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'header-max-length': [2, 'always', 150],
+    'body-max-line-length': [2, 'always', 250],
+  },
+};
+```
+
+**Valid commit message examples:**
+```bash
+feat: add user authentication module
+fix: resolve memory leak in WebSocket connection
+docs: update API documentation
+refactor: optimize database query performance
+test: add unit tests for payment processing
+```
+
+<Tip>
+Use conventional commit prefixes:
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation changes
+- `refactor:` - Code refactoring
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks
+</Tip>
+
+## Editor Configuration
+
+TailStack includes an `.editorconfig` file to maintain consistent coding styles:
+
+```ini
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+[*.{js,jsx,ts,tsx,css,json}]
+indent_style = space
+indent_size = 2
+
+[*.html]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+```
+
+**Supported editors:**
+- VS Code (install EditorConfig extension)
+- JetBrains IDEs (built-in support)
+- Sublime Text (install EditorConfig plugin)
+- Vim/Neovim (install editorconfig-vim)
+
+## Security Tools
+
+TailStack includes **Gitleaks** for secret detection:
+
+```json
+"lint-staged": {
+  "*": [
+    "gitleaks protect --staged --redact"
+  ]
+}
+```
+
+Gitleaks configuration is defined in `.gitleaks.toml` with custom rules for:
+- API keys
+- Database credentials
+- JWT tokens
+- Private keys
+- OAuth secrets
+
+<Warning>
+**Important:** Never bypass Git hooks with `--no-verify` unless absolutely necessary. The hooks exist to protect your codebase and prevent security vulnerabilities.
+</Warning>
+
+## Troubleshooting
+
+### Husky hooks not running
+
+If Git hooks aren't executing:
+
+```bash
+# Reinstall Husky
+pnpm husky
+
+# Make hooks executable (Unix-based systems)
+chmod +x .husky/*
+```
+
+### PNPM installation fails
+
+If you encounter peer dependency issues:
+
+```bash
+# Clear PNPM cache
+pnpm store prune
+
+# Remove node_modules and reinstall
+pnpm clean  # Uses TailStack's clean script
+pnpm install
+```
+
+### Wrong Node version
+
+Ensure you're using the correct Node version:
+
+```bash
+# Check current version
+node --version
+
+# Switch to correct version (NVM)
+nvm use
+
+# Or set it as default
+nvm alias default 24.13.0
+```
+
+## Next Steps
+
+Now that your environment is set up:
+
+1. Review available [automation scripts](/development/scripts) for managing the monorepo
+2. Learn the [development workflow](/development/workflow) for running dev servers
+3. Explore [customization options](/development/customization) to tailor TailStack to your needs

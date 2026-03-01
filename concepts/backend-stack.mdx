@@ -1,0 +1,422 @@
+---
+title: Backend Stack
+description: Express 5, TypeScript, Node clustering, CORS, and security features
+---
+
+TailStack's backend architecture provides a production-ready foundation for building scalable, secure REST APIs with Express 5 and TypeScript.
+
+## Technology Stack
+
+<CardGroup cols={2}>
+  <Card title="Express 5" icon="gauge">
+    Fast, minimalist web framework for Node.js
+  </Card>
+  <Card title="TypeScript 5.9" icon="code">
+    Type safety for reliable, maintainable code
+  </Card>
+  <Card title="Node Clustering" icon="network-wired">
+    Multi-core utilization for maximum performance
+  </Card>
+  <Card title="Security First" icon="shield-check">
+    Pre-configured CORS and security best practices
+  </Card>
+</CardGroup>
+
+## Package Versions
+
+Extracted from `packages/core/source/Server/package.json`:
+
+```json package.json
+{
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+## Express 5 Application
+
+The core Express app is configured with essential middleware:
+
+```typescript app.ts
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middlewares/cors';
+import routes from './routes';
+
+const app = express();
+
+// Middlewares
+app.use(corsMiddleware);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use('/api', routes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.path} not found`,
+  });
+});
+
+export default app;
+```
+
+<Accordion title="Middleware Breakdown">
+  **corsMiddleware**: Custom CORS configuration for cross-origin requests
+  
+  **express.json()**: Parses incoming JSON request bodies
+  
+  **express.urlencoded()**: Parses URL-encoded form data
+  
+  **cookieParser()**: Parses cookies from request headers
+</Accordion>
+
+## Node Clustering
+
+TailStack implements Node.js clustering to utilize all CPU cores:
+
+```typescript cluster/index.ts
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+import { config } from '../config';
+import { CLUSTER_CONFIG } from '../constant/cluster';
+
+export const initializeCluster = (workerCallback: () => void) => {
+  if (cluster.isPrimary) {
+    const numCPUs = config.workers || availableParallelism();
+    
+    console.log(`🚀 Primary process ${process.pid} is running`);
+    console.log(`📡 Environment: ${config.nodeEnv}`);
+    console.log(`🌐 CORS enabled for: ${config.corsOrigin}`);
+    console.log(`⚙️ Spawning ${numCPUs} workers for maximum performance...\n`);
+
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`⚠️ Worker ${worker.process.pid} died (code: ${code}, signal: ${signal}).`);
+      console.log(`🔄 Restarting in ${CLUSTER_CONFIG.RESTART_DELAY}ms...`);
+      
+      setTimeout(() => {
+        cluster.fork();
+      }, CLUSTER_CONFIG.RESTART_DELAY);
+    });
+  } else {
+    workerCallback();
+  }
+};
+```
+
+### Clustering Benefits
+
+<CardGroup cols={2}>
+  <Card title="Multi-Core Utilization" icon="microchip">
+    Spawns one worker per CPU core for parallel request processing
+  </Card>
+  <Card title="Automatic Restart" icon="rotate">
+    Workers automatically restart if they crash, ensuring high availability
+  </Card>
+  <Card title="Load Distribution" icon="scale-balanced">
+    Node's built-in load balancer distributes requests across workers
+  </Card>
+  <Card title="Zero-Downtime Updates" icon="arrow-up">
+    Rolling restarts enable deployments without downtime
+  </Card>
+</CardGroup>
+
+### Server Initialization
+
+The server starts with clustering and graceful shutdown:
+
+```typescript server.ts
+import app from './app';
+import { config } from './config';
+import { initializeCluster } from './cluster';
+
+initializeCluster(() => {
+  const server = app.listen(config.port, () => {
+    console.log(`✅ Worker ${process.pid} started on port ${config.port}`);
+  });
+
+  // Graceful shutdown
+  const gracefulShutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server for worker ${process.pid}`);
+    server.close(() => {
+      console.log(`HTTP server closed for worker ${process.pid}`);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+});
+```
+
+<Info>
+  **Graceful shutdown** ensures all in-flight requests complete before the server stops, preventing data loss and client errors.
+</Info>
+
+## CORS Configuration
+
+Custom CORS middleware with environment-based origin control:
+
+```typescript middlewares/cors.ts
+import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
+
+export const corsMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  res.header('Access-Control-Allow-Origin', config.corsOrigin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+};
+```
+
+### CORS Security
+
+<Accordion title="Production Configuration">
+  ```bash .env
+  # Development - allow all origins
+  CORS_ORIGIN=*
+  
+  # Production - restrict to your domain
+  CORS_ORIGIN=https://yourdomain.com
+  
+  # Multiple origins (comma-separated)
+  CORS_ORIGIN=https://yourdomain.com,https://www.yourdomain.com
+  ```
+</Accordion>
+
+<Accordion title="Preflight Requests">
+  The middleware handles OPTIONS preflight requests automatically:
+  
+  - Browser sends OPTIONS request before actual request
+  - Server responds with allowed methods and headers
+  - Browser proceeds with actual request if allowed
+</Accordion>
+
+## TypeScript Configuration
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+<Info>
+  **Path aliases** (`@/*`) enable clean imports: `import { UserService } from '@/services/user'`
+</Info>
+
+## Security Best Practices
+
+### Environment Variables
+
+```bash .env
+# Server
+PORT=3000
+NODE_ENV=production
+
+# CORS
+CORS_ORIGIN=https://yourdomain.com
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=myapp
+DB_USER=dbuser
+DB_PASSWORD=securepassword
+
+# JWT
+JWT_SECRET=your-secret-key-here
+JWT_REFRESH_SECRET=your-refresh-secret-here
+```
+
+<Tip>
+  Never commit `.env` files to version control. Use `.env.example` as a template.
+</Tip>
+
+### Cookie Security
+
+Cookie-parser enables secure cookie handling:
+
+```typescript
+import cookieParser from 'cookie-parser'
+
+app.use(cookieParser())
+
+// Set secure cookie
+res.cookie('sessionId', sessionId, {
+  httpOnly: true,      // Prevents XSS attacks
+  secure: true,        // HTTPS only
+  sameSite: 'strict',  // CSRF protection
+  maxAge: 3600000      // 1 hour
+})
+```
+
+### Request Validation
+
+Always validate and sanitize user input:
+
+```typescript
+import { z } from 'zod'
+
+const userSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  age: z.number().int().min(18).max(120)
+})
+
+app.post('/api/users', async (req, res) => {
+  try {
+    const validatedData = userSchema.parse(req.body)
+    // Proceed with validated data
+  } catch (error) {
+    res.status(400).json({ error: 'Invalid input' })
+  }
+})
+```
+
+## Development Scripts
+
+```json package.json
+{
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
+```
+
+### Running the Backend
+
+```bash
+# Development with hot reload
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+## API Structure
+
+Recommended project structure for Express backend:
+
+```
+source/Server/
+├── src/
+│   ├── app.ts                    # Express app configuration
+│   ├── server.ts                 # Server entry point
+│   ├── config/                   # Configuration files
+│   │   └── index.ts
+│   ├── cluster/                  # Clustering logic
+│   │   └── index.ts
+│   ├── middlewares/              # Custom middleware
+│   │   ├── cors.ts
+│   │   ├── auth.ts
+│   │   └── errorHandler.ts
+│   ├── routes/                   # Route definitions
+│   │   ├── index.ts
+│   │   ├── users.ts
+│   │   └── auth.ts
+│   ├── controllers/              # Request handlers
+│   │   ├── userController.ts
+│   │   └── authController.ts
+│   ├── services/                 # Business logic
+│   │   ├── userService.ts
+│   │   └── authService.ts
+│   ├── models/                   # Data models
+│   │   └── User.ts
+│   ├── utils/                    # Helper functions
+│   │   ├── logger.ts
+│   │   └── errors.ts
+│   └── types/                    # TypeScript types
+│       └── index.ts
+├── package.json
+├── tsconfig.json
+└── .env
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use TypeScript" icon="code">
+    Type safety prevents runtime errors and improves developer experience
+  </Card>
+  <Card title="Environment Variables" icon="key">
+    Never hardcode secrets - always use environment variables
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Implement global error handlers and custom error classes
+  </Card>
+  <Card title="Health Checks" icon="heart-pulse">
+    Always expose `/health` endpoints for monitoring
+  </Card>
+  <Card title="Logging" icon="file-lines">
+    Use structured logging (Pino, Winston) for production
+  </Card>
+  <Card title="Rate Limiting" icon="gauge-high">
+    Protect APIs from abuse with rate limiting middleware
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Agent Skills" icon="wand-magic-sparkles" href="/concepts/agent-skills">
+    Learn about pre-configured AI agent skills
+  </Card>
+  <Card title="Monorepo Management" icon="layer-group" href="/concepts/monorepo-management">
+    Understand PNPM workspaces and monorepo structure
+  </Card>
+</CardGroup>

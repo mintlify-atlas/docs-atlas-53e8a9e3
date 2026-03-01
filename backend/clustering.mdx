@@ -1,0 +1,220 @@
+---
+title: 'Clustering'
+description: 'Multi-core performance with Node.js cluster module in TailStack'
+---
+
+## Overview
+
+TailStack uses Node.js clustering to maximize performance by utilizing all available CPU cores. The cluster implementation automatically spawns worker processes and handles worker lifecycle management.
+
+## Why Clustering?
+
+Node.js runs single-threaded by default. Clustering enables:
+
+- **Multi-core utilization** - Use all CPU cores on your server
+- **Better performance** - Handle more concurrent requests
+- **Automatic failover** - Workers are restarted if they crash
+- **Zero-downtime updates** - Rolling restarts for deployments
+
+<Note>
+  On a 4-core machine, clustering can improve throughput by up to 4x compared to a single Node.js process.
+</Note>
+
+## Cluster Implementation
+
+The cluster logic is implemented in `cluster/index.ts`:
+
+```typescript title="packages/core/source/Server/src/cluster/index.ts"
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+import { config } from '../config';
+import { CLUSTER_CONFIG } from '../constant/cluster';
+
+export const initializeCluster = (workerCallback: () => void) => {
+  if (cluster.isPrimary) {
+    const numCPUs = config.workers || availableParallelism();
+    
+    console.log(`🚀 Primary process ${process.pid} is running`);
+    console.log(`📡 Environment: ${config.nodeEnv}`);
+    console.log(`🌐 CORS enabled for: ${config.corsOrigin}`);
+    console.log(`⚙️ Spawning ${numCPUs} workers for maximum performance...\n`);
+
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`⚠️ Worker ${worker.process.pid} died (code: ${code}, signal: ${signal}).`);
+      console.log(`🔄 Restarting in ${CLUSTER_CONFIG.RESTART_DELAY}ms...`);
+      
+      setTimeout(() => {
+        cluster.fork();
+      }, CLUSTER_CONFIG.RESTART_DELAY);
+    });
+  } else {
+    workerCallback();
+  }
+};
+```
+
+## How It Works
+
+<Steps>
+  <Step title="Primary Process Check">
+    The code checks if the current process is the primary (master) process using `cluster.isPrimary`.
+  </Step>
+  
+  <Step title="Worker Spawning">
+    The primary process spawns worker processes equal to the number of CPU cores using `availableParallelism()`.
+  </Step>
+  
+  <Step title="Worker Callback">
+    Each worker process executes the `workerCallback`, which starts the Express server.
+  </Step>
+  
+  <Step title="Automatic Restart">
+    When a worker dies, the primary process automatically spawns a new worker after a 1-second delay.
+  </Step>
+</Steps>
+
+## Configuration
+
+Cluster behavior is configured through constants:
+
+```typescript title="packages/core/source/Server/src/constant/cluster.ts"
+export const CLUSTER_CONFIG = {
+  RESTART_DELAY: 1000,
+};
+```
+
+### Number of Workers
+
+By default, TailStack spawns one worker per CPU core. You can override this with the `WORKERS` environment variable:
+
+```bash title=".env"
+WORKERS=4
+```
+
+<Warning>
+  Setting `WORKERS` higher than your CPU count can degrade performance due to context switching overhead.
+</Warning>
+
+## Worker Lifecycle
+
+When you start the server, you'll see output like this:
+
+```bash
+🚀 Primary process 12345 is running
+📡 Environment: production
+🌐 CORS enabled for: https://example.com
+⚙️ Spawning 8 workers for maximum performance...
+
+✅ Worker 12346 started on port 5000
+✅ Worker 12347 started on port 5000
+✅ Worker 12348 started on port 5000
+✅ Worker 12349 started on port 5000
+✅ Worker 12350 started on port 5000
+✅ Worker 12351 started on port 5000
+✅ Worker 12352 started on port 5000
+✅ Worker 12353 started on port 5000
+```
+
+### Worker Crash Handling
+
+If a worker crashes, the cluster automatically restarts it:
+
+```bash
+⚠️ Worker 12348 died (code: 1, signal: null).
+🔄 Restarting in 1000ms...
+✅ Worker 12354 started on port 5000
+```
+
+## Load Balancing
+
+The Node.js cluster module automatically distributes incoming connections across workers using a round-robin approach (on most platforms). This provides:
+
+- Even distribution of requests
+- Better resource utilization
+- Improved response times under load
+
+<Note>
+  The operating system's scheduler handles the round-robin distribution automatically - no additional configuration needed.
+</Note>
+
+## Development vs Production
+
+You can use different worker counts for development and production:
+
+```bash title=".env.development"
+WORKERS=2
+```
+
+```bash title=".env.production"
+# Use all available cores (default behavior)
+# WORKERS not set
+```
+
+## Alternative Cluster Manager
+
+TailStack also includes an alternative cluster manager implementation:
+
+```typescript title="packages/node/src/cluster/cluster.manager.ts"
+import cluster from 'node:cluster';
+import { NUMBER_OF_CPUS } from '../constant';
+
+export const ClusterManager = {
+  isPrimary: cluster.isPrimary,
+
+  spawnWorkers: () => {
+    console.log(`Master ${process.pid} is running. Spawning ${NUMBER_OF_CPUS} workers...`);
+
+    for (let i = 0; i < NUMBER_OF_CPUS; i++) {
+      cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`Worker ${worker.process.pid} died. Forking a new one...`);
+      cluster.fork();
+    });
+  },
+
+  getWorkerId: () => process.pid,
+};
+```
+
+This object-oriented approach provides:
+
+- Easy access to cluster state with `isPrimary`
+- Worker spawning with `spawnWorkers()`
+- Worker ID retrieval with `getWorkerId()`
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use all CPU cores in production">
+    Always use all available CPU cores in production for maximum throughput. The default configuration handles this automatically.
+  </Accordion>
+  
+  <Accordion title="Limit workers in development">
+    Use fewer workers in development (e.g., 2) to reduce resource usage and make debugging easier.
+  </Accordion>
+  
+  <Accordion title="Monitor worker health">
+    Implement health checks and monitoring to detect when workers are restarting frequently, which may indicate application bugs.
+  </Accordion>
+  
+  <Accordion title="Stateless workers">
+    Keep worker processes stateless. Use Redis or a database for shared state, as workers don't share memory.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server Setup" icon="server" href="/backend/server-setup">
+    Learn about the server initialization and app configuration
+  </Card>
+  <Card title="Configuration" icon="gear" href="/backend/configuration">
+    Configure workers and other environment variables
+  </Card>
+</CardGroup>

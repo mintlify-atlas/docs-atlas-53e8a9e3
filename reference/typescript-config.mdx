@@ -1,0 +1,329 @@
+---
+title: 'TypeScript Configuration'
+description: 'TypeScript compiler options and configurations across TailStack packages'
+---
+
+TailStack uses different TypeScript configurations optimized for server-side (Node.js) and client-side (React/Vite) environments.
+
+## Server Configuration
+
+The backend server uses a single `tsconfig.json` optimized for Node.js with ES2022 modules.
+
+### Server tsconfig.json
+
+Location: `source/Server/tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
+```
+
+### Server Compiler Options
+
+<ParamField path="target" type="string" default="ES2022">
+  Compilation target - ES2022 provides modern JavaScript features while maintaining broad Node.js compatibility
+</ParamField>
+
+<ParamField path="module" type="string" default="ES2022">
+  Module system - ES2022 enables native ESM support in Node.js
+</ParamField>
+
+<ParamField path="moduleResolution" type="string" default="bundler">
+  Module resolution strategy - "bundler" mode optimized for modern bundlers and runtimes like tsx
+</ParamField>
+
+<ParamField path="esModuleInterop" type="boolean" default={true}>
+  Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports
+</ParamField>
+
+<ParamField path="resolveJsonModule" type="boolean" default={true}>
+  Allow importing JSON files as modules
+</ParamField>
+
+<ParamField path="outDir" type="string" default="dist">
+  Output directory for compiled JavaScript files
+</ParamField>
+
+<ParamField path="strict" type="boolean" default={true}>
+  Enable all strict type-checking options (noImplicitAny, strictNullChecks, etc.)
+</ParamField>
+
+<ParamField path="skipLibCheck" type="boolean" default={true}>
+  Skip type checking of declaration files - improves compilation performance
+</ParamField>
+
+<ParamField path="noEmit" type="boolean" default={false}>
+  Allow emitting compiled files - set to false so `tsc` can build the project
+</ParamField>
+
+<ParamField path="allowImportingTsExtensions" type="boolean" default={true}>
+  Allow importing TypeScript files with `.ts` extensions
+</ParamField>
+
+<ParamField path="baseUrl" type="string" default=".">
+  Base directory for resolving non-relative module names
+</ParamField>
+
+<ParamField path="paths" type="object">
+  Path mapping for module resolution. The `@/*` alias maps to `./src/*` for cleaner imports
+</ParamField>
+
+## Frontend Configuration
+
+The React frontend uses a composite TypeScript project with three configuration files for different contexts.
+
+### Frontend tsconfig.json (Root)
+
+Location: `source/frontend/tsconfig.json`
+
+```json
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+This is a **project references** configuration that delegates to specialized configs:
+- `tsconfig.app.json` - Application source code
+- `tsconfig.node.json` - Build tooling (Vite config)
+
+<ParamField path="references" type="array">
+  TypeScript project references enable composite projects with separate compilation contexts
+</ParamField>
+
+### Frontend tsconfig.app.json
+
+Location: `source/frontend/tsconfig.app.json`
+
+Configuration for React application code:
+
+```json
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
+```
+
+### Application Compiler Options
+
+<ParamField path="tsBuildInfoFile" type="string">
+  Location for incremental compilation cache file
+</ParamField>
+
+<ParamField path="target" type="string" default="ES2022">
+  Target ES2022 for modern browser features
+</ParamField>
+
+<ParamField path="useDefineForClassFields" type="boolean" default={true}>
+  Use ECMAScript-standard semantics for class fields (required for React 19)
+</ParamField>
+
+<ParamField path="lib" type="array" default={["ES2022", "DOM", "DOM.Iterable"]}>
+  Type definitions to include - ES2022 for language features, DOM for browser APIs
+</ParamField>
+
+<ParamField path="module" type="string" default="ESNext">
+  Use latest ES module features
+</ParamField>
+
+<ParamField path="types" type="array" default={["vite/client"]}>
+  Include Vite's client type definitions for import.meta.env, etc.
+</ParamField>
+
+<ParamField path="moduleResolution" type="string" default="bundler">
+  Bundler mode - optimized for Vite's module resolution
+</ParamField>
+
+<ParamField path="verbatimModuleSyntax" type="boolean" default={true}>
+  Emit exactly what you write for imports/exports (prevents type-only import issues)
+</ParamField>
+
+<ParamField path="moduleDetection" type="string" default="force">
+  Force all files to be treated as modules (even without imports/exports)
+</ParamField>
+
+<ParamField path="noEmit" type="boolean" default={true}>
+  Don't emit files - Vite handles bundling
+</ParamField>
+
+<ParamField path="jsx" type="string" default="react-jsx">
+  Use React 17+ automatic JSX runtime (no need to import React)
+</ParamField>
+
+<ParamField path="noUnusedLocals" type="boolean" default={true}>
+  Report errors on unused local variables
+</ParamField>
+
+<ParamField path="noUnusedParameters" type="boolean" default={true}>
+  Report errors on unused function parameters
+</ParamField>
+
+<ParamField path="erasableSyntaxOnly" type="boolean" default={true}>
+  Ensure only type-erasable syntax is used (important for bundler transpilation)
+</ParamField>
+
+<ParamField path="noFallthroughCasesInSwitch" type="boolean" default={true}>
+  Report errors for fallthrough cases in switch statements
+</ParamField>
+
+<ParamField path="noUncheckedSideEffectImports" type="boolean" default={true}>
+  Warn when importing modules that might have side effects
+</ParamField>
+
+### Frontend tsconfig.node.json
+
+Location: `source/frontend/tsconfig.node.json`
+
+Configuration for build tooling (Vite config files):
+
+```json
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+```
+
+<ParamField path="target" type="string" default="ES2023">
+  Newer ES2023 target since build tools run in Node.js environment
+</ParamField>
+
+<ParamField path="lib" type="array" default={["ES2023"]}>
+  Only ES2023 library (no DOM APIs needed for build tools)
+</ParamField>
+
+<ParamField path="types" type="array" default={["node"]}>
+  Include Node.js type definitions for build tooling
+</ParamField>
+
+<ParamField path="include" type="array" default={["vite.config.ts"]}>
+  Only type-check Vite configuration files
+</ParamField>
+
+## Path Aliases
+
+All configurations include the `@/*` path alias for cleaner imports:
+
+```typescript
+// Instead of:
+import { config } from '../../../config';
+
+// Use:
+import { config } from '@/config';
+```
+
+<Note>
+The `@/*` alias is configured in both TypeScript and Vite to ensure consistent resolution at compile-time and runtime.
+</Note>
+
+## Project References Benefits
+
+The composite project structure provides:
+
+1. **Separation of concerns** - App code and build tools have different type requirements
+2. **Faster compilation** - Only rebuild changed projects
+3. **Better editor performance** - Separate contexts reduce type-checking overhead
+4. **Parallel builds** - TypeScript can build referenced projects concurrently
+
+## Common TypeScript Commands
+
+```bash
+# Type-check without emitting
+tsc --noEmit
+
+# Build server (emits to dist/)
+tsc
+
+# Build frontend (type-check only, Vite handles bundling)
+tsc -b
+
+# Watch mode
+tsc --watch
+```

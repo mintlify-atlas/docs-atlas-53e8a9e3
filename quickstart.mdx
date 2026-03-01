@@ -1,80 +1,249 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get up and running with TailStack in under 5 minutes
 ---
 
-## Get started in three steps
+# Quickstart
 
-Get your documentation site running locally and make your first customization.
+Get your TailStack project running in minutes. This guide will help you scaffold, install, and start developing with any of the three TailStack templates.
 
-### Step 1: Set up your local environment
+<Info>
+  **First time here?** This quickstart uses the **Core monorepo** template. For React-only or Node-only setups, see the [Installation](/installation) guide.
+</Info>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Get started in 3 steps
 
-### Step 2: Deploy your changes
+<Steps>
+  <Step title="Scaffold the project">
+    Use `degit` to create a new project from the Core monorepo template:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash
+    npx degit GitCoder052023/TailStack/packages/core my-project
+    cd my-project
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    This downloads the complete TailStack Core architecture with a clean Git history.
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Install dependencies">
+    TailStack uses **pnpm** for fast, efficient dependency management.
 
-### Step 3: Go live
+    <Tabs>
+      <Tab title="Linux / macOS">
+        Run the smart install script with load monitoring:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+        ```bash
+        bash scripts/install.sh
+        ```
+
+        Or use pnpm directly:
+
+        ```bash
+        pnpm install
+        ```
+      </Tab>
+
+      <Tab title="Windows (PowerShell)">
+        Run the smart install script with load monitoring:
+
+        ```powershell
+        .\scripts\install.ps1
+        ```
+
+        Or use pnpm directly:
+
+        ```powershell
+        pnpm install
+        ```
+      </Tab>
+    </Tabs>
+
+    <Tip>
+      The smart install scripts automatically monitor CPU and RAM usage, suspending installations if load exceeds 90% and resuming when it drops below 75%.
+    </Tip>
+  </Step>
+
+  <Step title="Start development">
+    Start both the frontend and backend servers concurrently:
+
+    ```bash
+    pnpm dev
+    ```
+
+    Your application is now running:
+    - **Frontend**: [http://localhost:5173](http://localhost:5173)
+    - **Backend API**: [http://localhost:5000](http://localhost:5000)
+    - **Weather API Demo**: [http://localhost:5173/weather](http://localhost:5173/weather)
+  </Step>
+</Steps>
+
+## What you just created
+
+Your TailStack Core project includes:
+
+<CardGroup cols={2}>
+  <Card title="Frontend" icon="react">
+    - React 19 with TypeScript
+    - Vite 6 for lightning-fast HMR
+    - Tailwind CSS 4 with Shadcn UI
+    - React Router for navigation
+    - Weather app demo
+  </Card>
+
+  <Card title="Backend" icon="server">
+    - Express 5 with TypeScript
+    - Node.js clustering (multi-core)
+    - CORS and security middleware
+    - Weather API endpoints
+    - Environment configuration
+  </Card>
+
+  <Card title="Monorepo Tools" icon="layer-group">
+    - PNPM workspaces
+    - Husky Git hooks
+    - Commitlint for conventional commits
+    - Gitleaks security scanning
+    - Cross-platform automation scripts
+  </Card>
+
+  <Card title="AI Agent Skills" icon="wand-magic-sparkles">
+    - Vercel React Best Practices
+    - Node.js Backend Patterns
+    - Tailwind v4 + Shadcn UI
+    - Pre-configured for Claude, Cursor, OpenCode
+  </Card>
+</CardGroup>
+
+## Explore the demo
+
+TailStack includes a fully functional **Weather App** to showcase the architecture:
+
+1. Navigate to [http://localhost:5173/weather](http://localhost:5173/weather)
+2. Search for a city or use your current location
+3. Explore the code:
+   - Frontend: `source/frontend/src/pages/weather.tsx`
+   - API Routes: `source/Server/src/routes/weather.routes.ts`
+   - Controller: `source/Server/src/controller/weather.controller.ts`
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Understand the directory organization and file structure
+  </Card>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+  <Card title="Development Workflow" icon="code" href="/development/workflow">
+    Learn the development workflow, Git hooks, and best practices
+  </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Card title="Building with Core" icon="hammer" href="/guides/building-with-core">
+    Build your first feature with the monorepo architecture
+  </Card>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy your TailStack application to production
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Alternative templates
+
+Not building a full-stack application? Choose a different template:
+
+<Tabs>
+  <Tab title="React Only">
+    For frontend-only applications:
+
+    ```bash
+    npx degit GitCoder052023/TailStack/packages/react my-react-app
+    cd my-react-app
+    pnpm install
+    pnpm dev
+    ```
+
+    Perfect for dashboards, landing pages, and client-side apps.
+
+    [Learn more about the React template →](/architecture/react-template)
+  </Tab>
+
+  <Tab title="Node Only">
+    For backend-only APIs and services:
+
+    ```bash
+    npx degit GitCoder052023/TailStack/packages/node my-api
+    cd my-api
+    pnpm install
+    pnpm dev
+    ```
+
+    Ideal for REST APIs, microservices, and backend utilities.
+
+    [Learn more about the Node template →](/architecture/node-template)
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="pnpm command not found">
+    Install pnpm globally:
+
+    ```bash
+    npm install -g pnpm
+    ```
+
+    Or use Corepack (Node.js 16.13+):
+
+    ```bash
+    corepack enable
+    corepack prepare pnpm@latest --activate
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    If port 5173 or 5000 is already in use, you can change the ports:
+
+    **Frontend** - Edit `source/frontend/vite.config.ts`:
+    ```typescript
+    server: {
+      port: 3000  // Change to your preferred port
+    }
+    ```
+
+    **Backend** - Create a `.env` file in `source/Server/`:
+    ```bash
+    PORT=4000  # Change to your preferred port
+    ```
+  </Accordion>
+
+  <Accordion title="Node version mismatch">
+    TailStack requires Node.js 20.x or higher. Check your version:
+
+    ```bash
+    node --version
+    ```
+
+    If using nvm:
+
+    ```bash
+    nvm use
+    ```
+
+    Or install the correct version:
+
+    ```bash
+    nvm install 20
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Get help
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/GitCoder052023/TailStack/issues">
+    Report bugs or request features
+  </Card>
+
+  <Card title="Installation Guide" icon="book" href="/installation">
+    Detailed installation instructions
+  </Card>
+</CardGroup>

@@ -1,0 +1,398 @@
+---
+title: 'Routing'
+description: 'React Router setup, route configuration, and navigation patterns in TailStack'
+---
+
+## Overview
+
+TailStack uses **React Router v6** for client-side routing with a declarative, component-based configuration.
+
+## Route Configuration
+
+Routes are defined in `App.tsx` using nested route structures:
+
+```tsx packages/core/source/frontend/src/App.tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { MainLayout } from '@/components/layout/main-layout';
+import { HomePage } from '@/pages/home';
+import { WeatherPage } from '@/pages/weather';
+import { DocsPage } from '@/pages/docs';
+import { DocsOverview } from '@/pages/docs/overview';
+import { GettingStartedPage } from '@/pages/docs/getting-started';
+import { ArchitecturePage } from '@/pages/docs/architecture';
+import { FrontendPage } from '@/pages/docs/frontend';
+import { BackendPage } from '@/pages/docs/backend';
+import { NotFoundPage } from '@/pages/not-found';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/weather" element={<WeatherPage />} />
+          <Route path="/docs" element={<DocsPage />}>
+            <Route index element={<DocsOverview />} />
+            <Route path="getting-started" element={<GettingStartedPage />} />
+            <Route path="architecture" element={<ArchitecturePage />} />
+            <Route path="frontend" element={<FrontendPage />} />
+            <Route path="backend" element={<BackendPage />} />
+          </Route>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </MainLayout>
+      <Toaster position="top-right" />
+    </BrowserRouter>
+  );
+}
+
+export default App;
+```
+
+## Route Structure
+
+TailStack's routing follows this hierarchy:
+
+```
+/                          → HomePage
+/weather                   → WeatherPage
+/docs                      → DocsPage (layout)
+  ├─ /docs (index)        → DocsOverview
+  ├─ /docs/getting-started → GettingStartedPage
+  ├─ /docs/architecture   → ArchitecturePage
+  ├─ /docs/frontend       → FrontendPage
+  └─ /docs/backend        → BackendPage
+/*                         → NotFoundPage (catch-all)
+```
+
+<Info>
+Nested routes allow parent components (like `DocsPage`) to render shared layouts while child routes render specific content.
+</Info>
+
+## Navigation Patterns
+
+### Declarative Navigation with `Link`
+
+Use the `Link` component for standard navigation:
+
+```tsx
+import { Link } from 'react-router-dom';
+
+<Link 
+  to="/docs/getting-started" 
+  className="text-primary hover:underline"
+>
+  Get Started
+</Link>
+```
+
+### Navigation in the Navbar
+
+The Navbar component demonstrates active link styling:
+
+```tsx packages/core/source/frontend/src/components/layout/navbar.tsx {10-13,33-47}
+import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { useNavigation } from '@/hooks/use-navigation';
+import { navItems } from '@/constants/Navigation';
+
+export function Navbar() {
+  const { isActive } = useNavigation();
+
+  return (
+    <nav className="flex items-center gap-4 text-sm lg:gap-6">
+      {navItems.map((item) => (
+        <Link
+          key={item.path}
+          to={item.path}
+          className={cn(
+            "transition-colors hover:text-foreground/80",
+            isActive(item.path, item.path !== '/docs')
+              ? "text-foreground font-medium"
+              : "text-foreground/60"
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+```
+
+### Programmatic Navigation
+
+Use the `useNavigate` hook for programmatic navigation:
+
+```tsx
+import { useNavigate } from 'react-router-dom';
+
+function MyComponent() {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    // Navigate to a new route
+    navigate('/docs/getting-started');
+
+    // Navigate with state
+    navigate('/weather', { state: { from: 'home' } });
+
+    // Go back
+    navigate(-1);
+  };
+
+  return <button onClick={handleClick}>Navigate</button>;
+}
+```
+
+## Custom Navigation Hook
+
+TailStack provides a custom `useNavigation` hook for common navigation patterns:
+
+```ts packages/core/source/frontend/src/hooks/use-navigation.ts
+import { useLocation } from 'react-router-dom';
+
+export function useNavigation() {
+  const location = useLocation();
+
+  const isActive = (path: string, exact = true) => {
+    if (exact) {
+      return location.pathname === path;
+    }
+    if (path === '/docs') {
+      return location.pathname.startsWith('/docs');
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return { location, isActive };
+}
+```
+
+### Usage Example
+
+```tsx
+import { useNavigation } from '@/hooks/use-navigation';
+
+function Navigation() {
+  const { isActive, location } = useNavigation();
+
+  return (
+    <div>
+      <Link 
+        to="/docs" 
+        className={isActive('/docs', false) ? 'active' : ''}
+      >
+        Documentation
+      </Link>
+      
+      <p>Current path: {location.pathname}</p>
+    </div>
+  );
+}
+```
+
+<Tip>
+The `exact` parameter controls whether to match the path exactly or check if the current path starts with the given path.
+</Tip>
+
+## Nested Routes and Outlets
+
+Parent routes can render child routes using the `Outlet` component:
+
+```tsx
+import { Outlet } from 'react-router-dom';
+
+export function DocsPage() {
+  return (
+    <div className="flex">
+      <aside className="w-64">
+        {/* Sidebar navigation */}
+      </aside>
+      <main className="flex-1">
+        <Outlet /> {/* Child routes render here */}
+      </main>
+    </div>
+  );
+}
+```
+
+In `App.tsx`, this creates a nested structure:
+
+```tsx
+<Route path="/docs" element={<DocsPage />}>
+  <Route index element={<DocsOverview />} />
+  <Route path="getting-started" element={<GettingStartedPage />} />
+</Route>
+```
+
+## Route Parameters
+
+Access dynamic route parameters with `useParams`:
+
+```tsx
+import { useParams } from 'react-router-dom';
+
+// Route: /docs/:category/:page
+function DocumentationPage() {
+  const { category, page } = useParams();
+
+  return (
+    <div>
+      <h1>Category: {category}</h1>
+      <h2>Page: {page}</h2>
+    </div>
+  );
+}
+```
+
+## Search Parameters
+
+Manage query strings with `useSearchParams`:
+
+```tsx
+import { useSearchParams } from 'react-router-dom';
+
+function SearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const query = searchParams.get('q');
+  const filter = searchParams.get('filter');
+
+  const updateSearch = (newQuery: string) => {
+    setSearchParams({ q: newQuery, filter: filter || '' });
+  };
+
+  return (
+    <div>
+      <p>Search query: {query}</p>
+      <button onClick={() => updateSearch('new query')}>
+        Update Search
+      </button>
+    </div>
+  );
+}
+```
+
+## Protected Routes
+
+Implement authentication-based route protection:
+
+```tsx
+import { Navigate } from 'react-router-dom';
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  isAuthenticated: boolean;
+}
+
+function ProtectedRoute({ children, isAuthenticated }: ProtectedRouteProps) {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Usage in App.tsx
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute isAuthenticated={isAuthenticated}>
+      <DashboardPage />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+## Layout Routes
+
+Wrap multiple routes with a shared layout:
+
+```tsx
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* All routes share MainLayout */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/weather" element={<WeatherPage />} />
+          <Route path="/docs" element={<DocsPage />} />
+        </Route>
+        
+        {/* Auth routes with different layout */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+## Error Handling
+
+Implement error boundaries for route-level error handling:
+
+```tsx
+import { useRouteError } from 'react-router-dom';
+
+function ErrorBoundary() {
+  const error = useRouteError();
+
+  return (
+    <div>
+      <h1>Oops!</h1>
+      <p>Sorry, an unexpected error occurred.</p>
+      <p>
+        <i>{error.statusText || error.message}</i>
+      </p>
+    </div>
+  );
+}
+
+// Add to route configuration
+<Route 
+  path="/" 
+  element={<HomePage />} 
+  errorElement={<ErrorBoundary />} 
+/>
+```
+
+## Best Practices
+
+1. **Use nested routes** for shared layouts and hierarchical navigation
+2. **Implement 404 handling** with a catch-all route (`path="*"`)
+3. **Keep routes declarative** in a central configuration file
+4. **Use the Link component** for internal navigation (not anchor tags)
+5. **Leverage custom hooks** like `useNavigation` for common patterns
+6. **Add loading states** for data fetching in route components
+7. **Implement error boundaries** for graceful error handling
+
+## Navigation Configuration
+
+Store navigation items in a constants file for consistency:
+
+```ts constants/Navigation.ts
+import { Home, BookOpen, Cloud } from 'lucide-react';
+
+export const navItems = [
+  { path: '/', label: 'Home', icon: Home },
+  { path: '/docs', label: 'Documentation', icon: BookOpen },
+  { path: '/weather', label: 'Weather', icon: Cloud },
+];
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="layer-group" href="/frontend/components">
+    Learn about shadcn UI components and component structure
+  </Card>
+  <Card title="State Management" icon="database" href="/frontend/state-management">
+    Explore custom hooks and state patterns
+  </Card>
+</CardGroup>

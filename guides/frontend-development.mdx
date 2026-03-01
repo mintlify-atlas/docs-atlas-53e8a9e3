@@ -1,0 +1,579 @@
+---
+title: Frontend Development Guide
+description: Build modern React applications with TypeScript, routing, and shadcn/ui components
+---
+
+The Core template's frontend is built with React 19, TypeScript, Vite, React Router, and shadcn/ui components. This guide shows you how to develop features using the established patterns.
+
+## Tech Stack
+
+The frontend uses modern, production-ready technologies:
+
+- **React 19** - Latest React with improved performance
+- **TypeScript** - Full type safety
+- **Vite** - Lightning-fast build tool
+- **React Router v7** - Client-side routing
+- **Tailwind CSS v4** - Utility-first styling
+- **shadcn/ui** - Beautiful, accessible components
+- **Lucide React** - Icon library
+- **Axios** - HTTP client
+- **Sonner** - Toast notifications
+
+## Project Structure
+
+```bash
+packages/core/source/frontend/
+├── src/
+│   ├── api/              # API client layer
+│   │   └── weather.api.ts
+│   ├── components/       # React components
+│   │   ├── layout/       # Layout components
+│   │   │   ├── main-layout.tsx
+│   │   │   └── navbar.tsx
+│   │   ├── ui/           # shadcn/ui components
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── input.tsx
+│   │   │   └── ...
+│   │   └── theme-toggle.tsx
+│   ├── config/           # Configuration
+│   │   └── api.ts
+│   ├── hooks/            # Custom React hooks
+│   │   ├── use-weather.ts
+│   │   ├── use-theme.ts
+│   │   └── use-navigation.ts
+│   ├── pages/            # Route pages
+│   │   ├── home.tsx
+│   │   ├── weather.tsx
+│   │   ├── not-found.tsx
+│   │   └── docs/
+│   ├── types/            # TypeScript types
+│   ├── App.tsx           # Root component
+│   ├── main.tsx          # Entry point
+│   └── index.css         # Global styles
+├── package.json
+└── vite.config.ts
+```
+
+## Creating Pages
+
+### Basic Page Structure
+
+Pages in TailStack follow a consistent pattern. Here's the Weather page structure:
+
+`packages/core/source/frontend/src/pages/weather.tsx:21`
+
+```typescript
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useWeather } from '@/hooks/use-weather';
+
+export function WeatherPage() {
+  const {
+    location,
+    setLocation,
+    weather,
+    loading,
+    error,
+    handleSearch,
+  } = useWeather();
+
+  return (
+    <div className="container py-10">
+      <div className="mx-auto max-w-4xl space-y-8">
+        {/* Page Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Weather App
+          </h1>
+          <p className="text-muted-foreground">
+            Search for weather by location or use your current GPS location.
+          </p>
+        </div>
+
+        {/* Search Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Weather</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter city name"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch} disabled={loading}>
+                {loading ? 'Searching...' : 'Search'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Weather Results */}
+        {weather && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{weather.location.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">
+                {weather.current.temp_c}°C
+              </div>
+              <p>{weather.current.condition.text}</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### Adding a New Page
+
+<Steps>
+  <Step title="Create the page component">
+    Create a new file in `src/pages/`:
+    
+    ```typescript
+    // src/pages/dashboard.tsx
+    export function DashboardPage() {
+      return (
+        <div className="container py-10">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Your application dashboard
+          </p>
+        </div>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Add route to App.tsx">
+    Register the route in `src/App.tsx:1`:
+    
+    ```typescript
+    import { BrowserRouter, Routes, Route } from 'react-router-dom';
+    import { DashboardPage } from '@/pages/dashboard';
+    
+    function App() {
+      return (
+        <BrowserRouter>
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/weather" element={<WeatherPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </MainLayout>
+        </BrowserRouter>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Add navigation link">
+    Update the navbar in `src/components/layout/navbar.tsx`:
+    
+    ```typescript
+    const navigation = [
+      { name: 'Home', href: '/' },
+      { name: 'Dashboard', href: '/dashboard' },
+      { name: 'Weather', href: '/weather' },
+    ];
+    ```
+  </Step>
+</Steps>
+
+## Working with Components
+
+### Using shadcn/ui Components
+
+The template includes pre-configured shadcn/ui components:
+
+<Tabs>
+  <Tab title="Button">
+    ```typescript
+    import { Button } from '@/components/ui/button';
+    
+    <Button variant="default">Click me</Button>
+    <Button variant="destructive">Delete</Button>
+    <Button variant="outline">Cancel</Button>
+    <Button variant="ghost">Ghost</Button>
+    <Button size="sm">Small</Button>
+    <Button size="lg">Large</Button>
+    ```
+  </Tab>
+  
+  <Tab title="Card">
+    ```typescript
+    import {
+      Card,
+      CardHeader,
+      CardTitle,
+      CardDescription,
+      CardContent,
+      CardFooter,
+    } from '@/components/ui/card';
+    
+    <Card>
+      <CardHeader>
+        <CardTitle>Card Title</CardTitle>
+        <CardDescription>Card description</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p>Card content goes here</p>
+      </CardContent>
+      <CardFooter>
+        <Button>Action</Button>
+      </CardFooter>
+    </Card>
+    ```
+  </Tab>
+  
+  <Tab title="Input">
+    ```typescript
+    import { Input } from '@/components/ui/input';
+    
+    const [value, setValue] = useState('');
+    
+    <Input
+      type="text"
+      placeholder="Enter text"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+    />
+    
+    <Input type="email" placeholder="Email" />
+    <Input type="password" placeholder="Password" />
+    ```
+  </Tab>
+  
+  <Tab title="Badge">
+    ```typescript
+    import { Badge } from '@/components/ui/badge';
+    
+    <Badge>Default</Badge>
+    <Badge variant="secondary">Secondary</Badge>
+    <Badge variant="destructive">Error</Badge>
+    <Badge variant="outline">Outline</Badge>
+    ```
+  </Tab>
+</Tabs>
+
+### Available UI Components
+
+The template includes these shadcn/ui components in `src/components/ui/`:
+
+- `button.tsx` - Buttons with variants
+- `card.tsx` - Card containers
+- `input.tsx` - Form inputs
+- `badge.tsx` - Status badges
+- `separator.tsx` - Horizontal/vertical dividers
+- `sheet.tsx` - Slide-out panels
+- `select.tsx` - Dropdown selects
+- `scroll-area.tsx` - Custom scrollbars
+- `code-block.tsx` - Code syntax highlighting
+
+### Creating Custom Components
+
+Create reusable components in `src/components/`:
+
+```typescript
+// src/components/weather-metric.tsx
+import type { ReactNode } from 'react';
+
+interface WeatherMetricProps {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}
+
+export function WeatherMetric({ icon, label, value }: WeatherMetricProps) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="font-medium">{value}</p>
+      </div>
+    </div>
+  );
+}
+```
+
+Use it in your pages:
+
+```typescript
+import { WeatherMetric } from '@/components/weather-metric';
+import { Droplets, Wind } from 'lucide-react';
+
+<WeatherMetric
+  icon={<Droplets className="h-4 w-4" />}
+  label="Humidity"
+  value="65%"
+/>
+<WeatherMetric
+  icon={<Wind className="h-4 w-4" />}
+  label="Wind"
+  value="15 km/h"
+/>
+```
+
+## Custom Hooks
+
+Custom hooks encapsulate reusable logic. The weather hook demonstrates the pattern:
+
+`packages/core/source/frontend/src/hooks/use-weather.ts`
+
+```typescript
+import { useState } from 'react';
+import { weatherApi } from '@/api/weather.api';
+import type { WeatherData } from '@/types/weather';
+
+export function useWeather() {
+  const [location, setLocation] = useState('');
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = async () => {
+    if (!location.trim()) {
+      setError('Please enter a location');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await weatherApi.getWeatherByLocation(location);
+      setWeather(data);
+    } catch (err) {
+      setError('Failed to fetch weather data');
+      setWeather(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    location,
+    setLocation,
+    weather,
+    loading,
+    error,
+    handleSearch,
+  };
+}
+```
+
+## API Integration
+
+The API layer provides type-safe communication with the backend:
+
+`packages/core/source/frontend/src/api/weather.api.ts:1`
+
+```typescript
+import axios from 'axios';
+import { API_CONFIG } from '@/config/api';
+import type { WeatherData } from '@/types/weather';
+
+const apiClient = axios.create({
+  baseURL: API_CONFIG.baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export const weatherApi = {
+  getWeatherByLocation: async (location: string): Promise<WeatherData> => {
+    const response = await apiClient.get<WeatherData>(
+      API_CONFIG.endpoints.weather.byLocation,
+      { params: { location } }
+    );
+    return response.data;
+  },
+
+  getWeatherByCoordinates: async (
+    lat: number,
+    lon: number
+  ): Promise<WeatherData> => {
+    const response = await apiClient.get<WeatherData>(
+      API_CONFIG.endpoints.weather.byCoordinates,
+      { params: { lat, lon } }
+    );
+    return response.data;
+  },
+};
+```
+
+### Creating a New API Module
+
+```typescript
+// src/api/users.api.ts
+import axios from 'axios';
+import { API_CONFIG } from '@/config/api';
+import type { User } from '@/types/user';
+
+const apiClient = axios.create({
+  baseURL: API_CONFIG.baseURL,
+});
+
+export const usersApi = {
+  getUser: async (id: string): Promise<User> => {
+    const response = await apiClient.get<User>(`/api/users/${id}`);
+    return response.data;
+  },
+
+  createUser: async (data: Partial<User>): Promise<User> => {
+    const response = await apiClient.post<User>('/api/users', data);
+    return response.data;
+  },
+};
+```
+
+## Styling with Tailwind CSS
+
+### Layout Patterns
+
+```typescript
+// Container with max-width
+<div className="container py-10">
+  <div className="mx-auto max-w-4xl">
+    {/* Content */}
+  </div>
+</div>
+
+// Flex layouts
+<div className="flex items-center gap-4">
+<div className="flex flex-col gap-2">
+<div className="flex justify-between">
+
+// Grid layouts
+<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+// Responsive spacing
+<div className="space-y-4">  {/* Vertical spacing */}
+<div className="space-x-2">  {/* Horizontal spacing */}
+```
+
+### Color System
+
+```typescript
+// Background colors
+className="bg-background"     // Page background
+className="bg-card"           // Card background
+className="bg-muted"          // Muted background
+className="bg-primary"        // Primary brand color
+className="bg-destructive"    // Error/danger color
+
+// Text colors
+className="text-foreground"          // Primary text
+className="text-muted-foreground"    // Secondary text
+className="text-primary"             // Primary brand text
+className="text-destructive"         // Error text
+
+// Border colors
+className="border"                   // Default border
+className="border-primary"           // Primary border
+className="border-destructive/50"    // Semi-transparent
+```
+
+## Icons with Lucide React
+
+The template uses Lucide React for icons:
+
+```typescript
+import {
+  Search,
+  MapPin,
+  Loader2,
+  AlertCircle,
+  Droplets,
+  Wind,
+  Sun,
+  Moon,
+} from 'lucide-react';
+
+// Basic usage
+<Search className="h-4 w-4" />
+
+// With color
+<AlertCircle className="h-4 w-4 text-destructive" />
+
+// Animated
+<Loader2 className="h-4 w-4 animate-spin" />
+
+// In buttons
+<Button>
+  <Search className="h-4 w-4 mr-2" />
+  Search
+</Button>
+```
+
+## Toast Notifications
+
+The template includes Sonner for toast notifications:
+
+```typescript
+import { toast } from 'sonner';
+
+// Success toast
+toast.success('Weather data loaded successfully');
+
+// Error toast
+toast.error('Failed to fetch weather data');
+
+// Info toast
+toast.info('Searching for location...');
+
+// Custom toast
+toast('Custom message', {
+  description: 'Additional details',
+  duration: 5000,
+});
+```
+
+The Toaster is configured in `App.tsx:31`:
+
+```typescript
+import { Toaster } from 'sonner';
+
+<Toaster position="top-right" />
+```
+
+## Development Commands
+
+```bash
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Preview production build
+pnpm preview
+
+# Run linter
+pnpm lint
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend Development" icon="server" href="/guides/backend-development">
+    Create API routes and services for your frontend
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy your frontend to production
+  </Card>
+</CardGroup>

@@ -1,0 +1,543 @@
+---
+title: Node.js Backend Patterns
+description: Production-ready patterns for building scalable Node.js backend services with Express and Fastify
+---
+
+## Overview
+
+The **Node.js Backend Patterns** skill provides comprehensive guidance for building scalable, maintainable, and production-ready Node.js backend applications. This skill covers modern frameworks, architectural patterns, middleware, error handling, authentication, and database integration.
+
+<Info>
+  **Full-Stack Coverage**: While TailStack focuses on React frontends, this skill ensures your backend follows production-grade patterns.
+</Info>
+
+## What This Skill Does
+
+The skill guides AI agents through building robust Node.js backends:
+
+- **Framework Setup** - Express.js and Fastify configurations
+- **Architecture** - Layered architecture with controllers, services, repositories
+- **Dependency Injection** - Clean DI container patterns
+- **Middleware** - Authentication, validation, rate limiting, logging
+- **Error Handling** - Custom error classes and global error handlers
+- **Database Integration** - PostgreSQL, MongoDB with connection pooling
+- **Authentication** - JWT-based auth with refresh tokens
+- **Caching** - Redis integration and caching strategies
+- **API Design** - Consistent response formats and pagination
+
+## Location in TailStack
+
+The Node.js Backend Patterns skill is available in the Node package:
+
+```bash
+# Agent skill files
+packages/node/.agent/skills/nodejs-backend-patterns/
+packages/node/.claude/skills/nodejs-backend-patterns/
+packages/node/.opencode/skills/nodejs-backend-patterns/
+```
+
+## Skill Structure
+
+<Card title="Skill Contents" icon="folder">
+  The skill provides:
+  
+  - **SKILL.md** - Complete patterns documentation (1049 lines)
+  - **Code Examples** - Production-ready TypeScript implementations
+  - **Best Practices** - 15 key guidelines for Node.js backends
+  - **Architecture Patterns** - Layered architecture, DI containers
+  - **Database Patterns** - Connection pooling, transactions, ORMs
+</Card>
+
+## Core Architectural Patterns
+
+### Layered Architecture
+
+<Steps>
+  <Step title="Controller Layer">
+    Handles HTTP requests and responses. Delegates business logic to services.
+    
+    ```typescript
+    export class UserController {
+      constructor(private userService: UserService) {}
+      
+      async createUser(req: Request, res: Response, next: NextFunction) {
+        try {
+          const user = await this.userService.createUser(req.body)
+          res.status(201).json(user)
+        } catch (error) {
+          next(error)
+        }
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Service Layer">
+    Contains business logic, validation, and orchestration.
+    
+    ```typescript
+    export class UserService {
+      constructor(private userRepository: UserRepository) {}
+      
+      async createUser(userData: CreateUserDTO): Promise<User> {
+        // Validation
+        const existingUser = await this.userRepository.findByEmail(userData.email)
+        if (existingUser) {
+          throw new ValidationError('Email already exists')
+        }
+        
+        // Hash password
+        const hashedPassword = await bcrypt.hash(userData.password, 10)
+        
+        // Create user
+        return await this.userRepository.create({
+          ...userData,
+          password: hashedPassword
+        })
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Repository Layer">
+    Data access layer - handles database queries.
+    
+    ```typescript
+    export class UserRepository {
+      constructor(private db: Pool) {}
+      
+      async create(userData: CreateUserDTO): Promise<UserEntity> {
+        const query = `
+          INSERT INTO users (name, email, password)
+          VALUES ($1, $2, $3)
+          RETURNING *
+        `
+        const { rows } = await this.db.query(query, [
+          userData.name,
+          userData.email,
+          userData.password
+        ])
+        return rows[0]
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Dependency Injection Pattern
+
+<CodeGroup>
+```typescript Container Setup
+class Container {
+  private instances = new Map<string, any>()
+  
+  singleton<T>(key: string, factory: () => T): void {
+    let instance: T
+    this.instances.set(key, () => {
+      if (!instance) {
+        instance = factory()
+      }
+      return instance
+    })
+  }
+  
+  resolve<T>(key: string): T {
+    const factory = this.instances.get(key)
+    if (!factory) throw new Error(`No factory for ${key}`)
+    return factory()
+  }
+}
+```
+
+```typescript Registration
+const container = new Container()
+
+// Database
+container.singleton('db', () => new Pool({
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME
+}))
+
+// Repositories
+container.singleton('userRepository', () => 
+  new UserRepository(container.resolve('db'))
+)
+
+// Services
+container.singleton('userService', () => 
+  new UserService(container.resolve('userRepository'))
+)
+
+// Controllers
+container.register('userController', () => 
+  new UserController(container.resolve('userService'))
+)
+```
+</CodeGroup>
+
+## Framework Support
+
+<CardGroup cols={2}>
+  <Card title="Express.js" icon="e">
+    **Minimalist Framework**
+    
+    - Most popular Node.js framework
+    - Extensive middleware ecosystem
+    - Simple and flexible
+    - Great for REST APIs
+    
+    ```typescript
+    const app = express()
+    app.use(helmet())
+    app.use(cors())
+    app.use(express.json())
+    ```
+  </Card>
+  
+  <Card title="Fastify" icon="bolt">
+    **High Performance**
+    
+    - Built-in schema validation
+    - Auto-generated documentation
+    - 2-3× faster than Express
+    - Type-safe by default
+    
+    ```typescript
+    const fastify = Fastify({
+      logger: true
+    })
+    await fastify.register(helmet)
+    await fastify.listen({ port: 3000 })
+    ```
+  </Card>
+</CardGroup>
+
+## Essential Middleware Patterns
+
+### Authentication Middleware
+
+```typescript
+import jwt from 'jsonwebtoken'
+
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  
+  if (!token) {
+    throw new UnauthorizedError('No token provided')
+  }
+  
+  const payload = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload
+  req.user = payload
+  next()
+}
+
+// Usage
+router.get('/profile', authenticate, profileController.getProfile)
+```
+
+### Validation Middleware
+
+```typescript
+import { z } from 'zod'
+
+export const validate = (schema: AnyZodObject) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params
+      })
+      next()
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new ValidationError('Validation failed', error.errors)
+      }
+      next(error)
+    }
+  }
+}
+
+// Usage with schema
+const createUserSchema = z.object({
+  body: z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(8)
+  })
+})
+
+router.post('/users', validate(createUserSchema), userController.create)
+```
+
+### Rate Limiting
+
+```typescript
+import rateLimit from 'express-rate-limit'
+import RedisStore from 'rate-limit-redis'
+
+export const apiLimiter = rateLimit({
+  store: new RedisStore({
+    client: redis,
+    prefix: 'rl:'
+  }),
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: 'Too many requests'
+})
+
+// Stricter limit for auth endpoints
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  skipSuccessfulRequests: true
+})
+
+app.use('/api/', apiLimiter)
+app.use('/auth/', authLimiter)
+```
+
+## Error Handling
+
+<Card title="Custom Error Classes" icon="triangle-exclamation">
+  ```typescript
+  export class AppError extends Error {
+    constructor(
+      public message: string,
+      public statusCode: number = 500,
+      public isOperational: boolean = true
+    ) {
+      super(message)
+      Error.captureStackTrace(this, this.constructor)
+    }
+  }
+  
+  export class ValidationError extends AppError {
+    constructor(message: string, public errors?: any[]) {
+      super(message, 400)
+    }
+  }
+  
+  export class NotFoundError extends AppError {
+    constructor(message: string = 'Resource not found') {
+      super(message, 404)
+    }
+  }
+  
+  export class UnauthorizedError extends AppError {
+    constructor(message: string = 'Unauthorized') {
+      super(message, 401)
+    }
+  }
+  ```
+</Card>
+
+### Global Error Handler
+
+```typescript
+export const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      status: 'error',
+      message: err.message,
+      ...(err instanceof ValidationError && { errors: err.errors })
+    })
+  }
+  
+  // Log unexpected errors
+  logger.error({
+    error: err.message,
+    stack: err.stack,
+    url: req.url
+  })
+  
+  // Don't leak error details in production
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal server error'
+    : err.message
+  
+  res.status(500).json({ status: 'error', message })
+}
+
+// Add at the end of middleware chain
+app.use(errorHandler)
+```
+
+## Database Patterns
+
+<CardGroup cols={2}>
+  <Card title="PostgreSQL" icon="database">
+    **Connection Pool Pattern**
+    
+    ```typescript
+    import { Pool } from 'pg'
+    
+    export const pool = new Pool({
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      max: 20,
+      idleTimeoutMillis: 30000
+    })
+    
+    // Graceful shutdown
+    export const closeDatabase = async () => {
+      await pool.end()
+    }
+    ```
+  </Card>
+  
+  <Card title="MongoDB" icon="leaf">
+    **Mongoose Setup**
+    
+    ```typescript
+    import mongoose from 'mongoose'
+    
+    const connectDB = async () => {
+      await mongoose.connect(
+        process.env.MONGODB_URI!,
+        {
+          maxPoolSize: 10,
+          serverSelectionTimeoutMS: 5000
+        }
+      )
+    }
+    
+    export { connectDB }
+    ```
+  </Card>
+</CardGroup>
+
+### Transaction Pattern
+
+```typescript
+export class OrderService {
+  async createOrder(userId: string, items: any[]) {
+    const client = await this.db.connect()
+    
+    try {
+      await client.query('BEGIN')
+      
+      // Create order
+      const orderResult = await client.query(
+        'INSERT INTO orders (user_id, total) VALUES ($1, $2) RETURNING id',
+        [userId, calculateTotal(items)]
+      )
+      
+      // Create order items
+      for (const item of items) {
+        await client.query(
+          'INSERT INTO order_items (order_id, product_id, quantity) VALUES ($1, $2, $3)',
+          [orderResult.rows[0].id, item.productId, item.quantity]
+        )
+      }
+      
+      await client.query('COMMIT')
+      return orderResult.rows[0].id
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
+  }
+}
+```
+
+## Using with AI Agents
+
+### Claude Desktop & Claude.ai
+
+<Steps>
+  <Step title="Access Skill">
+    Navigate to `packages/node/.claude/skills/nodejs-backend-patterns/SKILL.md`
+  </Step>
+  
+  <Step title="Request Implementation">
+    Example: "Create an Express API with authentication following Node.js backend patterns"
+  </Step>
+</Steps>
+
+### OpenCode
+
+<Steps>
+  <Step title="Load Skill">
+    Skill is available at `packages/node/.opencode/skills/nodejs-backend-patterns/`
+  </Step>
+  
+  <Step title="Ask for Patterns">
+    Example: "Build a user service with the repository pattern from nodejs-backend-patterns"
+  </Step>
+</Steps>
+
+### Generic Agents
+
+<Steps>
+  <Step title="Include Context">
+    Provide the SKILL.md file to your AI agent as context
+  </Step>
+  
+  <Step title="Reference Patterns">
+    Ask for specific patterns like "layered architecture", "DI container", or "JWT authentication"
+  </Step>
+</Steps>
+
+## Best Practices Checklist
+
+<Card title="15 Essential Best Practices" icon="list-check">
+  1. **Use TypeScript** - Type safety prevents runtime errors
+  2. **Implement proper error handling** - Custom error classes
+  3. **Validate input** - Use Zod or Joi
+  4. **Use environment variables** - Never hardcode secrets
+  5. **Implement logging** - Structured logging (Pino, Winston)
+  6. **Add rate limiting** - Prevent abuse
+  7. **Use HTTPS** - Always in production
+  8. **Implement CORS properly** - Don't use `*` in production
+  9. **Use dependency injection** - Easier testing
+  10. **Write tests** - Unit, integration, E2E
+  11. **Handle graceful shutdown** - Clean up resources
+  12. **Use connection pooling** - For databases
+  13. **Implement health checks** - For monitoring
+  14. **Use compression** - Reduce response size
+  15. **Monitor performance** - Use APM tools
+</Card>
+
+## When to Use This Skill
+
+<CardGroup cols={2}>
+  <Card title="Building APIs" icon="plug">
+    - REST API development
+    - GraphQL servers
+    - Microservices
+    - Real-time applications
+  </Card>
+  
+  <Card title="Architecture" icon="sitemap">
+    - Setting up project structure
+    - Implementing authentication
+    - Database integration
+    - Error handling patterns
+  </Card>
+</CardGroup>
+
+## Official Resources
+
+<Card title="Learn More" icon="book">
+  - **Skills.sh**: [nodejs-backend-patterns](https://skills.sh/skill/nodejs-backend-patterns)
+  - **Node.js Best Practices**: [GitHub Repository](https://github.com/goldbergyoni/nodebestpractices)
+  - **Express.js Guide**: [Official Documentation](https://expressjs.com/en/guide/)
+  - **Fastify Documentation**: [Official Docs](https://www.fastify.io/docs/)
+</Card>
+
+## Related Skills
+
+- [Vercel React Best Practices](/reference/vercel-react-practices) - For frontend optimization
+- [Tailwind v4 + Shadcn](/reference/tailwind-shadcn-skill) - For UI components

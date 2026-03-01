@@ -1,0 +1,567 @@
+---
+title: Core ERN Monorepo
+description: Deep dive into TailStack's flagship full-stack Express + React + Node.js monorepo architecture
+---
+
+## Overview
+
+The **Core Monorepo** is TailStack's flagship template, providing a complete **ERN Stack** (Express, React, Node.js) in a unified, production-ready architecture. It's designed for full-stack applications where frontend and backend are tightly integrated and deployed together.
+
+<Note>
+This template is located at `packages/core/` in the TailStack repository.
+</Note>
+
+## Architecture Components
+
+<CardGroup cols={2}>
+  <Card title="Frontend" icon="browser">
+    **Vite + React + Tailwind**
+    
+    Modern client application with:
+    - React 19 with latest features
+    - Vite 6 for lightning-fast HMR
+    - Tailwind CSS 4 (new engine)
+    - Shadcn UI component library
+    - React Router 7 for routing
+  </Card>
+  
+  <Card title="Backend" icon="server">
+    **Express + TypeScript + Clustering**
+    
+    Scalable server foundation:
+    - Express 5 web framework
+    - Full TypeScript type safety
+    - Multi-core Node clustering
+    - CORS and security configured
+    - RESTful API architecture
+  </Card>
+  
+  <Card title="Automation" icon="robot">
+    **Cross-Platform Scripts**
+    
+    Development utilities:
+    - Smart clean (parallel purge)
+    - Smart install (load-aware)
+    - Both PowerShell and Bash
+    - Located in `scripts/` directory
+  </Card>
+  
+  <Card title="AI Skills" icon="brain">
+    **Agent-Powered Development**
+    
+    Three pre-configured skills:
+    - Vercel React Best Practices
+    - Node.js Backend Patterns
+    - Tailwind v4 + shadcn/ui
+  </Card>
+</CardGroup>
+
+## Directory Structure
+
+Here's the complete structure of the Core monorepo:
+
+```
+core/
+├── .agent/                          # Gemini agent skills
+│   └── skills/
+│       ├── nodejs-backend-patterns/
+│       ├── tailwind-v4-shadcn/
+│       └── vercel-react-best-practices/
+├── .claude/                         # Claude agent skills
+│   └── skills/                      # (same structure as .agent/)
+├── .cursor/                         # Cursor agent skills
+│   └── skills/                      # (same structure as .agent/)
+├── .opencode/                       # OpenCode agent skills
+│   └── skills/                      # (same structure as .agent/)
+├── .agents/                         # Trae agent skills
+│   └── skills/                      # (same structure as .agent/)
+├── .husky/                          # Git hooks configuration
+├── .vscode/                         # VS Code workspace settings
+├── assets/                          # Static assets (logo, images)
+├── Docs/                            # Project documentation
+│   ├── CODE_OF_CONDUCT.md
+│   ├── CONTRIBUTING.md
+│   └── SECURITY.md
+├── scripts/                         # Automation utilities
+│   ├── clean.ps1                    # PowerShell: Fast cleanup
+│   ├── clean.sh                     # Bash: Fast cleanup
+│   ├── install.ps1                  # PowerShell: Smart installer
+│   └── install.sh                   # Bash: Smart installer
+├── source/                          # Main application code
+│   ├── frontend/                    # React client application
+│   │   ├── src/
+│   │   │   ├── api/                 # API client functions
+│   │   │   ├── components/          # React components
+│   │   │   │   ├── layout/          # Layout components
+│   │   │   │   ├── ui/              # Shadcn UI components
+│   │   │   │   └── theme-toggle.tsx
+│   │   │   ├── config/              # App configuration
+│   │   │   ├── constants/           # Constants and variants
+│   │   │   ├── hooks/               # Custom React hooks
+│   │   │   ├── lib/                 # Utility functions
+│   │   │   ├── pages/               # Application pages
+│   │   │   │   ├── docs/            # Documentation pages
+│   │   │   │   ├── home.tsx         # Home page
+│   │   │   │   ├── weather.tsx      # Weather demo
+│   │   │   │   └── not-found.tsx    # 404 page
+│   │   │   ├── types/               # TypeScript types
+│   │   │   ├── App.tsx              # Root component
+│   │   │   └── main.tsx             # Entry point
+│   │   ├── index.html
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── vite.config.ts
+│   └── Server/                      # Express backend application
+│       ├── src/
+│       │   ├── cluster/             # Clustering logic
+│       │   │   └── index.ts         # Cluster initialization
+│       │   ├── config/              # Server configuration
+│       │   │   └── index.ts         # Environment config
+│       │   ├── constant/            # Server constants
+│       │   │   └── cluster.ts       # Cluster settings
+│       │   ├── controller/          # Request controllers
+│       │   ├── middlewares/         # Express middlewares
+│       │   ├── routes/              # API route definitions
+│       │   ├── services/            # Business logic services
+│       │   ├── types/               # TypeScript types
+│       │   ├── app.ts               # Express app setup
+│       │   └── server.ts            # Server entry point
+│       ├── .env.example
+│       ├── package.json
+│       └── tsconfig.json
+├── .editorconfig
+├── .gitignore
+├── .npmrc
+├── .nvmrc
+├── .node-version
+├── commitlint.config.cjs
+├── package.json                     # Root package (workspace config)
+└── README.md
+```
+
+## Frontend Architecture
+
+### Technology Stack
+
+The frontend is built with modern React best practices:
+
+<Tabs>
+  <Tab title="Core Libraries">
+    ```json package.json (frontend)
+    {
+      "dependencies": {
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "react-router-dom": "^7.12.0",
+        "@tailwindcss/vite": "^4.1.18",
+        "tailwindcss": "^4.1.18",
+        "axios": "^1.7.9",
+        "lucide-react": "^0.562.0",
+        "sonner": "^2.0.7",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.4.0"
+      },
+      "devDependencies": {
+        "@vitejs/plugin-react": "^5.1.1",
+        "typescript": "~5.9.3",
+        "vite": "^7.2.4"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Components">
+    ### Shadcn UI Components
+    
+    Pre-configured components in `source/frontend/src/components/ui/`:
+    
+    - `button.tsx` - Button with variants
+    - `card.tsx` - Card container with header/footer
+    - `badge.tsx` - Status badges
+    - `input.tsx` - Form input fields
+    - `select.tsx` - Select dropdowns
+    - `separator.tsx` - Visual dividers
+    - `scroll-area.tsx` - Scrollable containers
+    - `sheet.tsx` - Slide-out panels
+    - `code-block.tsx` - Syntax-highlighted code
+    
+    All components use the CVA (Class Variance Authority) pattern:
+    
+    ```tsx
+    import { cn } from "@/lib/utils"
+    import { buttonVariants } from "@/constants/ui-variants"
+    
+    const Button = ({ variant, size, ...props }) => (
+      <button
+        className={cn(buttonVariants({ variant, size }))}
+        {...props}
+      />
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Weather Demo">
+    ### Full-Stack Weather Application
+    
+    The Core template includes a complete weather app demo at `source/frontend/src/pages/weather.tsx`.
+    
+    **Features:**
+    - Real-time weather data fetching
+    - Location-based search
+    - Responsive design
+    - Error handling
+    - Loading states
+    - API integration with backend
+    
+    **Architecture:**
+    ```
+    Frontend (weather.tsx)
+      ↓ axios request
+    Backend (routes/weather.ts)
+      ↓ external API call
+    Weather Service API
+      ↓ response
+    Frontend (display)
+    ```
+  </Tab>
+</Tabs>
+
+## Backend Architecture
+
+### Node Clustering
+
+The backend uses Node.js clustering to maximize performance across CPU cores:
+
+```typescript source/Server/src/cluster/index.ts
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+
+export const initializeCluster = (workerCallback: () => void) => {
+  if (cluster.isPrimary) {
+    const numCPUs = config.workers || availableParallelism();
+    
+    console.log(`🚀 Primary process ${process.pid} is running`);
+    console.log(`⚙️ Spawning ${numCPUs} workers...`);
+
+    // Fork workers
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    // Auto-restart failed workers
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`⚠️ Worker ${worker.process.pid} died`);
+      setTimeout(() => cluster.fork(), CLUSTER_CONFIG.RESTART_DELAY);
+    });
+  } else {
+    workerCallback();
+  }
+};
+```
+
+<Note>
+**Performance Impact:** Clustering allows the server to handle concurrent requests across all CPU cores, dramatically improving throughput for compute-intensive operations.
+</Note>
+
+### Server Entry Point
+
+The server initialization in `source/Server/src/server.ts`:
+
+```typescript
+import app from './app';
+import { config } from './config';
+import { initializeCluster } from './cluster';
+
+initializeCluster(() => {
+  const server = app.listen(config.port, () => {
+    console.log(`✅ Worker ${process.pid} started on port ${config.port}`);
+  });
+
+  // Graceful shutdown handling
+  const gracefulShutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server`);
+    server.close(() => {
+      console.log(`HTTP server closed`);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+});
+```
+
+### Dependencies
+
+```json package.json (Server)
+{
+  "dependencies": {
+    "express": "^5.2.1",
+    "axios": "^1.7.9",
+    "cors": "^2.8.6",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.10",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+## Development Workflow
+
+### Concurrent Development
+
+The root `package.json` includes a unified dev script:
+
+```json
+{
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\""
+  }
+}
+```
+
+Running `pnpm dev` from the root starts both frontend and backend simultaneously:
+
+- **Frontend:** `http://localhost:5173` (Vite dev server)
+- **Backend:** `http://localhost:5000` (Express API)
+
+### Hot Module Replacement
+
+<Tabs>
+  <Tab title="Frontend">
+    Vite provides instant HMR for React components:
+    
+    - Sub-100ms updates
+    - Preserves component state
+    - No full page reload needed
+    - Works with Tailwind CSS changes
+  </Tab>
+  
+  <Tab title="Backend">
+    TSX watch mode automatically restarts the server:
+    
+    ```bash
+    tsx watch src/server.ts
+    ```
+    
+    - Detects TypeScript file changes
+    - Recompiles and restarts workers
+    - Maintains all cluster workers
+  </Tab>
+</Tabs>
+
+## Agent Skills Integration
+
+The Core template includes **three agent skills** across multiple AI platforms:
+
+<CardGroup cols={3}>
+  <Card title="Vercel React" icon="react">
+    **Location:** `.agent/skills/vercel-react-best-practices/`
+    
+    - 57 performance rules
+    - 8 optimization categories
+    - React 19 best practices
+    - Next.js patterns
+  </Card>
+  
+  <Card title="Node.js Patterns" icon="node">
+    **Location:** `.agent/skills/nodejs-backend-patterns/`
+    
+    - Scalable architectures
+    - Security best practices
+    - Error handling patterns
+    - Production deployment
+  </Card>
+  
+  <Card title="Tailwind + shadcn" icon="palette">
+    **Location:** `.agent/skills/tailwind-v4-shadcn/`
+    
+    - Tailwind v4 syntax
+    - shadcn/ui components
+    - Dark mode setup
+    - Migration guides
+  </Card>
+</CardGroup>
+
+### Supported AI Agents
+
+Skills are duplicated across agent directories for compatibility:
+
+- `.agent/` - Gemini and generic agents
+- `.claude/` - Claude Desktop and API
+- `.cursor/` - Cursor IDE
+- `.opencode/` - OpenCode CLI
+- `.agents/` - Trae and custom agents
+
+## Automation Scripts
+
+Located in `scripts/` directory:
+
+<Tabs>
+  <Tab title="Smart Clean">
+    ### Lightning-Fast Cleanup
+    
+    **Files:** `clean.ps1` (PowerShell) / `clean.sh` (Bash)
+    
+    **Features:**
+    - Parallel deletion across all `node_modules`
+    - Kills locking processes (Node.js, VS Code)
+    - Removes `pnpm-lock.yaml` files
+    - 3-retry verification loop
+    - Cross-platform compatibility
+    
+    **Usage:**
+    ```bash
+    # Bash (Linux/macOS)
+    ./scripts/clean.sh
+    
+    # PowerShell (Windows)
+    .\scripts\clean.ps1
+    ```
+  </Tab>
+  
+  <Tab title="Smart Install">
+    ### Intelligent Installer
+    
+    **Files:** `install.ps1` (PowerShell) / `install.sh` (Bash)
+    
+    **Features:**
+    - Parallel `pnpm install` for all packages
+    - CPU/RAM load monitoring
+    - Auto-suspend at 90% system load
+    - Auto-resume when load drops below 75%
+    - Prevents system crashes on low-end hardware
+    
+    **State Machine:**
+    ```
+    RUNNING → (load > 90%) → SUSPENDED
+    SUSPENDED → (load < 75%) → RUNNING
+    ```
+    
+    **Usage:**
+    ```bash
+    # Bash (Linux/macOS)
+    ./scripts/install.sh
+    
+    # PowerShell (Windows)
+    .\scripts\install.ps1
+    ```
+  </Tab>
+</Tabs>
+
+## Security Features
+
+<CardGroup cols={2}>
+  <Card title="Gitleaks" icon="shield">
+    Automatic secret detection on every commit via Husky hooks
+    
+    - Scans staged files for secrets
+    - Blocks commits with leaked credentials
+    - Configured via `.gitleaks.toml`
+  </Card>
+  
+  <Card title="Commitlint" icon="check">
+    Enforces Conventional Commits format
+    
+    - `feat:`, `fix:`, `docs:`, etc.
+    - Automated changelog generation
+    - Semantic versioning support
+  </Card>
+  
+  <Card title="CORS" icon="globe">
+    Backend CORS configured for frontend origin
+    
+    - Environment-based origins
+    - Credential support
+    - Pre-flight handling
+  </Card>
+  
+  <Card title="Environment Variables" icon="key">
+    Secure configuration via `.env` files
+    
+    - `.env.example` templates
+    - Never committed to Git
+    - Dotenv for loading
+  </Card>
+</CardGroup>
+
+## Production Deployment
+
+### Build Process
+
+<Tabs>
+  <Tab title="Frontend">
+    ```bash
+    cd source/frontend
+    pnpm build
+    ```
+    
+    Outputs to `source/frontend/dist/`:
+    - Optimized bundle with tree-shaking
+    - Minified JavaScript and CSS
+    - Hashed filenames for caching
+    - Ready for static hosting (Vercel, Netlify, S3)
+  </Tab>
+  
+  <Tab title="Backend">
+    ```bash
+    cd source/Server
+    pnpm build
+    ```
+    
+    Outputs to `source/Server/dist/`:
+    - Compiled TypeScript to JavaScript
+    - Preserves directory structure
+    - Ready for Node.js deployment
+    
+    **Run production:**
+    ```bash
+    pnpm start  # node dist/server.js
+    ```
+  </Tab>
+</Tabs>
+
+### Deployment Strategies
+
+<CardGroup cols={2}>
+  <Card title="Monolithic" icon="cube">
+    Deploy frontend and backend together
+    
+    - Single Docker container
+    - Express serves React build
+    - Simplified deployment
+    - Single domain/certificate
+  </Card>
+  
+  <Card title="Separated" icon="cubes">
+    Deploy frontend and backend independently
+    
+    - Frontend: Vercel/Netlify
+    - Backend: Heroku/Railway/AWS
+    - CDN for static assets
+    - Better scalability
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Explore detailed directory organization
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Set up your first TailStack project
+  </Card>
+  <Card title="React Template" icon="react" href="/architecture/react-template">
+    Compare with frontend-only architecture
+  </Card>
+  <Card title="Node Template" icon="node" href="/architecture/node-template">
+    Compare with backend-only architecture
+  </Card>
+</CardGroup>

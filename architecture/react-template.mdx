@@ -1,0 +1,605 @@
+---
+title: React Template Architecture
+description: Frontend-only architecture with Vite, React 19, Tailwind CSS 4, and shadcn/ui components
+---
+
+## Overview
+
+The **React Template** is TailStack's frontend-only architecture, providing a modern, high-performance foundation for building client-side applications. It's perfect for SPAs, dashboards, and applications that consume external APIs.
+
+<Note>
+This template is located at `packages/react/` in the TailStack repository.
+</Note>
+
+## When to Use This Template
+
+Choose the React template when you:
+
+<CardGroup cols={2}>
+  <Card title="Separate Backend" icon="split">
+    Your backend is:
+    - A separate service/microservice
+    - Third-party API (Firebase, Supabase)
+    - Different tech stack (Go, Python, Java)
+    - Managed by another team
+  </Card>
+  
+  <Card title="Frontend Focus" icon="browser">
+    Your project is:
+    - Client-side web application
+    - Admin dashboard
+    - Marketing or landing page
+    - Static site with dynamic features
+  </Card>
+  
+  <Card title="Independent Deployment" icon="rocket">
+    You want to:
+    - Deploy frontend separately
+    - Use CDN for static hosting
+    - Scale frontend independently
+    - Faster deployment cycles
+  </Card>
+  
+  <Card title="Specialized Hosting" icon="cloud">
+    You're deploying to:
+    - Vercel, Netlify, Cloudflare Pages
+    - S3 + CloudFront
+    - GitHub Pages
+    - Any static hosting
+  </Card>
+</CardGroup>
+
+## Directory Structure
+
+```
+react/
+├── .agent/                          # Gemini agent skills
+│   └── skills/
+│       ├── tailwind-v4-shadcn/
+│       └── vercel-react-best-practices/
+├── .claude/                         # Claude agent skills
+│   └── skills/                      # (same structure)
+├── .cursor/                         # Cursor agent skills
+│   └── skills/                      # (same structure)
+├── .opencode/                       # OpenCode agent skills
+│   └── skills/                      # (same structure)
+├── .agents/                         # Trae agent skills
+│   └── skills/                      # (same structure)
+├── src/
+│   ├── api/                         # API client functions
+│   ├── components/
+│   │   ├── docs/                    # Documentation components
+│   │   ├── home/                    # Home page components
+│   │   ├── layout/                  # Layout components
+│   │   │   ├── footer.tsx
+│   │   │   ├── header.tsx
+│   │   │   └── sidebar.tsx
+│   │   ├── ui/                      # Shadcn UI components
+│   │   │   ├── badge.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── code-block.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── scroll-area.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── separator.tsx
+│   │   │   └── sheet.tsx
+│   │   └── weather/                 # Weather demo components
+│   ├── config/                      # App configuration
+│   ├── constants/                   # Constants and UI variants
+│   ├── hooks/                       # Custom React hooks
+│   ├── lib/                         # Utility functions
+│   │   └── utils.ts                 # cn() for className merging
+│   ├── pages/                       # Application pages
+│   │   ├── docs/                    # Documentation pages
+│   │   ├── home.tsx                 # Home/landing page
+│   │   ├── weather.tsx              # Weather demo page
+│   │   └── not-found.tsx            # 404 error page
+│   ├── types/                       # TypeScript type definitions
+│   ├── App.tsx                      # Root application component
+│   ├── main.tsx                     # Application entry point
+│   └── index.css                    # Global styles + Tailwind
+├── public/                          # Static assets
+├── index.html                       # HTML entry point
+├── .gitignore
+├── eslint.config.js                 # ESLint configuration
+├── package.json
+├── tsconfig.json                    # TypeScript config
+├── vite.config.ts                   # Vite configuration
+└── README.md
+```
+
+## Technology Stack
+
+### Core Dependencies
+
+<Tabs>
+  <Tab title="React Ecosystem">
+    ```json package.json
+    {
+      "dependencies": {
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "react-router-dom": "^7.12.0"
+      }
+    }
+    ```
+    
+    **React 19** features used:
+    - React Server Components ready
+    - Improved Suspense boundaries
+    - Automatic batching
+    - New `use()` hook for async data
+    
+    **React Router 7** provides:
+    - File-based routing option
+    - Improved data loading
+    - Type-safe route params
+    - Nested layouts
+  </Tab>
+  
+  <Tab title="Build Tools">
+    ```json package.json
+    {
+      "devDependencies": {
+        "vite": "^7.2.4",
+        "@vitejs/plugin-react": "^5.1.1",
+        "typescript": "~5.9.3"
+      }
+    }
+    ```
+    
+    **Vite 6** advantages:
+    - Sub-100ms HMR updates
+    - Native ES modules
+    - Optimized dependency pre-bundling
+    - Lightning-fast cold starts
+    - Built-in TypeScript support
+  </Tab>
+  
+  <Tab title="Styling">
+    ```json package.json
+    {
+      "dependencies": {
+        "tailwindcss": "^4.1.18",
+        "@tailwindcss/vite": "^4.1.18",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.4.0"
+      }
+    }
+    ```
+    
+    **Tailwind CSS 4** new engine:
+    - 10x faster builds
+    - CSS-first configuration
+    - Improved IntelliSense
+    - Better tree-shaking
+    - Native CSS variables
+  </Tab>
+  
+  <Tab title="UI Components">
+    ```json package.json
+    {
+      "dependencies": {
+        "lucide-react": "^0.562.0",
+        "sonner": "^2.0.7",
+        "axios": "^1.7.9"
+      }
+    }
+    ```
+    
+    **Lucide React:** 1000+ consistent icons
+    
+    **Sonner:** Beautiful toast notifications
+    
+    **Axios:** HTTP client for API calls
+  </Tab>
+</Tabs>
+
+## Shadcn UI Integration
+
+The template comes with **shadcn/ui** components pre-installed in `src/components/ui/`:
+
+<CardGroup cols={2}>
+  <Card title="Button" icon="square">
+    **File:** `button.tsx`
+    
+    Variants: default, destructive, outline, secondary, ghost, link
+    
+    Sizes: default, sm, lg, icon
+    
+    ```tsx
+    <Button variant="outline" size="lg">
+      Click me
+    </Button>
+    ```
+  </Card>
+  
+  <Card title="Card" icon="rectangle-wide">
+    **File:** `card.tsx`
+    
+    Components: Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+    
+    ```tsx
+    <Card>
+      <CardHeader>
+        <CardTitle>Title</CardTitle>
+      </CardHeader>
+      <CardContent>Content</CardContent>
+    </Card>
+    ```
+  </Card>
+  
+  <Card title="Badge" icon="tag">
+    **File:** `badge.tsx`
+    
+    Variants: default, secondary, destructive, outline
+    
+    ```tsx
+    <Badge variant="secondary">New</Badge>
+    ```
+  </Card>
+  
+  <Card title="Input" icon="input-text">
+    **File:** `input.tsx`
+    
+    Accessible form inputs with proper types
+    
+    ```tsx
+    <Input type="email" placeholder="Email" />
+    ```
+  </Card>
+</CardGroup>
+
+### Component Pattern
+
+All shadcn components follow this pattern:
+
+```tsx src/components/ui/button.tsx
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/constants/ui-variants"
+import type { ButtonProps } from "@/types/ui"
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild, children, ...props }, ref) => {
+    return (
+      <button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </button>
+    )
+  }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+```
+
+<Note>
+**CVA Pattern:** Components use Class Variance Authority for type-safe variant handling. Variants are defined in `src/constants/ui-variants.ts` for centralized management.
+</Note>
+
+## Weather App Demo
+
+The template includes a fully functional weather application at `src/pages/weather.tsx`:
+
+### Features
+
+<CardGroup cols={2}>
+  <Card title="Real-Time Data" icon="cloud">
+    Fetches weather data from external API
+    - Current conditions
+    - Temperature and humidity
+    - Wind speed and direction
+    - Weather descriptions
+  </Card>
+  
+  <Card title="Search & Location" icon="map-pin">
+    Location-based weather lookup
+    - City name search
+    - Auto-complete suggestions
+    - Geolocation support
+    - Recent searches history
+  </Card>
+  
+  <Card title="Responsive UI" icon="mobile">
+    Beautiful on all devices
+    - Mobile-first design
+    - Tablet optimized
+    - Desktop layouts
+    - Dark mode support
+  </Card>
+  
+  <Card title="Error Handling" icon="alert-triangle">
+    Graceful error states
+    - Loading skeletons
+    - Error boundaries
+    - Retry mechanisms
+    - User-friendly messages
+  </Card>
+</CardGroup>
+
+### Code Example
+
+```tsx src/pages/weather.tsx (simplified)
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { fetchWeather } from '@/api/weather'
+
+export default function WeatherPage() {
+  const [city, setCity] = useState('')
+  const [weather, setWeather] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleSearch = async () => {
+    setLoading(true)
+    const data = await fetchWeather(city)
+    setWeather(data)
+    setLoading(false)
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Weather Search</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input 
+              value={city} 
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Enter city name"
+            />
+            <Button onClick={handleSearch} disabled={loading}>
+              Search
+            </Button>
+          </div>
+          {weather && (
+            <div className="mt-4">
+              <h2>{weather.name}</h2>
+              <p>{weather.main.temp}°C</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+```
+
+## Routing Architecture
+
+React Router 7 configuration in `src/App.tsx`:
+
+```tsx src/App.tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import HomePage from './pages/home'
+import WeatherPage from './pages/weather'
+import NotFoundPage from './pages/not-found'
+import Layout from './components/layout'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="weather" element={<WeatherPage />} />
+          <Route path="docs/*" element={<DocsRoutes />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
+```
+
+### Layout System
+
+Nested layouts in `src/components/layout/`:
+
+- **Header:** Navigation, logo, theme toggle
+- **Sidebar:** Secondary navigation for nested routes
+- **Footer:** Links, copyright, social media
+
+## API Client Architecture
+
+Centralized API functions in `src/api/`:
+
+```typescript src/api/weather.ts
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.example.com'
+
+export const fetchWeather = async (city: string) => {
+  const response = await axios.get(`${API_BASE_URL}/weather`, {
+    params: { city }
+  })
+  return response.data
+}
+```
+
+<Note>
+**Environment Variables:** Use `VITE_` prefix for environment variables in `.env` files. They're statically replaced at build time.
+</Note>
+
+## Agent Skills
+
+The React template includes **two agent skills**:
+
+<Tabs>
+  <Tab title="Vercel React Best Practices">
+    **Location:** `.agent/skills/vercel-react-best-practices/`
+    
+    **Categories:**
+    1. Component Architecture
+    2. Performance Optimization
+    3. State Management
+    4. Data Fetching
+    5. Error Boundaries
+    6. Accessibility
+    7. Testing Strategies
+    8. Build Optimization
+    
+    **Rules:** 57 total rules with priority levels
+    
+    **Example Rules:**
+    - Use React.memo() for expensive components
+    - Implement code splitting with lazy()
+    - Avoid inline functions in JSX
+    - Use Suspense boundaries for async data
+  </Tab>
+  
+  <Tab title="Tailwind v4 + shadcn/ui">
+    **Location:** `.agent/skills/tailwind-v4-shadcn/`
+    
+    **Contents:**
+    - `SKILL.md` - Main skill definition
+    - `commands/setup.md` - Setup instructions
+    - `references/architecture.md` - Component patterns
+    - `references/dark-mode.md` - Theme switching
+    - `references/migration-guide.md` - v3 to v4 migration
+    - `rules/tailwind-v4-shadcn.md` - Best practices
+    
+    **Key Topics:**
+    - CSS-first Tailwind v4 config
+    - shadcn/ui component customization
+    - Dark mode with class strategy
+    - CVA for variant management
+  </Tab>
+</Tabs>
+
+## Development Workflow
+
+### Starting Development
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Vite dev server starts at `http://localhost:5173`
+
+### Build for Production
+
+```bash
+pnpm build
+```
+
+Outputs to `dist/`:
+- `index.html` - Entry HTML
+- `assets/*.js` - JavaScript bundles
+- `assets/*.css` - CSS bundles
+- All files have content hashes for caching
+
+### Preview Production Build
+
+```bash
+pnpm preview
+```
+
+Starts a local server to preview the production build.
+
+## Deployment Options
+
+<Tabs>
+  <Tab title="Vercel">
+    ### Deploy to Vercel
+    
+    **Automatic:**
+    1. Connect GitHub repository
+    2. Vercel auto-detects Vite
+    3. Deploys on every push
+    
+    **Manual:**
+    ```bash
+    pnpm build
+    vercel --prod
+    ```
+    
+    **Configuration:** `vercel.json`
+    ```json
+    {
+      "buildCommand": "pnpm build",
+      "outputDirectory": "dist",
+      "framework": "vite"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Netlify">
+    ### Deploy to Netlify
+    
+    **Configuration:** `netlify.toml`
+    ```toml
+    [build]
+      command = "pnpm build"
+      publish = "dist"
+    
+    [[redirects]]
+      from = "/*"
+      to = "/index.html"
+      status = 200
+    ```
+    
+    **CLI:**
+    ```bash
+    pnpm build
+    netlify deploy --prod --dir=dist
+    ```
+  </Tab>
+  
+  <Tab title="Static Hosting">
+    ### S3, CloudFront, GitHub Pages
+    
+    **Build:**
+    ```bash
+    pnpm build
+    ```
+    
+    **Upload `dist/` contents to:**
+    - AWS S3 bucket
+    - CloudFront distribution
+    - GitHub Pages
+    - Any static hosting
+    
+    **Important:** Configure server to always serve `index.html` for client-side routing.
+  </Tab>
+</Tabs>
+
+## Comparison with Core Monorepo
+
+| Feature | React Template | Core Monorepo |
+|---------|----------------|---------------|
+| **Backend** | ❌ External | ✅ Included (Express) |
+| **Frontend** | ✅ Vite + React | ✅ Vite + React |
+| **Deployment** | Static hosting | Full-stack or split |
+| **Complexity** | Lower | Higher |
+| **Use Case** | Frontend-only | Full-stack |
+| **Skills** | 2 skills | 3 skills |
+| **File Size** | Smaller | Larger |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Monorepo" icon="layer-group" href="/architecture/core-monorepo">
+    Compare with full-stack architecture
+  </Card>
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Explore detailed directory layout
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Set up your first React project
+  </Card>
+  <Card title="Deployment Guide" icon="cloud" href="/deployment">
+    Deploy your React application
+  </Card>
+</CardGroup>

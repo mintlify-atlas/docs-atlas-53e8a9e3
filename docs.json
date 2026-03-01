@@ -1,122 +1,138 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "TailStack",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#38bdf8",
+    "light": "#7dd3fc",
+    "dark": "#0284c7"
   },
   "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/GitCoder052023/TailStack"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/GitCoder052023/TailStack"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "installation"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Architecture",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "architecture/overview",
+              "architecture/core-monorepo",
+              "architecture/react-template",
+              "architecture/node-template",
+              "architecture/project-structure"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "concepts/monorepo-management",
+              "concepts/frontend-stack",
+              "concepts/backend-stack",
+              "concepts/agent-skills"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Development",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "development/setup",
+              "development/scripts",
+              "development/workflow",
+              "development/customization"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/building-with-core",
+              "guides/frontend-development",
+              "guides/backend-development",
+              "guides/deployment"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Components & APIs",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Frontend",
             "pages": [
-              "api-reference/introduction"
+              "frontend/components",
+              "frontend/routing",
+              "frontend/styling",
+              "frontend/state-management"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Backend",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "backend/server-setup",
+              "backend/clustering",
+              "backend/routing",
+              "backend/middleware",
+              "backend/configuration"
+            ]
+          },
+          {
+            "group": "Automation",
+            "pages": [
+              "automation/clean-script",
+              "automation/install-script",
+              "automation/custom-scripts"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Templates",
+            "pages": [
+              "reference/core-package",
+              "reference/react-package",
+              "reference/node-package"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "reference/package-json",
+              "reference/typescript-config",
+              "reference/vite-config",
+              "reference/environment-variables"
+            ]
+          },
+          {
+            "group": "Agent Skills",
+            "pages": [
+              "reference/vercel-react-practices",
+              "reference/nodejs-patterns",
+              "reference/tailwind-shadcn-skill"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

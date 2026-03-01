@@ -1,0 +1,731 @@
+---
+title: Project Structure
+description: Detailed explanation of TailStack's directory organization, file layout, and architectural patterns
+---
+
+## Overview
+
+TailStack follows a well-organized, scalable directory structure designed for production applications. This guide provides a detailed walkthrough of the file organization across all three templates.
+
+<Note>
+All paths shown are relative to the template root directory: `packages/core/`, `packages/react/`, or `packages/node/`
+</Note>
+
+## Root-Level Organization
+
+All TailStack templates share common root-level files:
+
+```
+├── .gitignore                       # Git ignore patterns
+├── .npmrc                           # npm/pnpm configuration
+├── .nvmrc                           # Node version (for nvm)
+├── .node-version                    # Node version (for nodenv)
+├── .editorconfig                    # Editor configuration
+├── commitlint.config.cjs            # Commit message linting
+├── package.json                     # Dependencies and scripts
+├── README.md                        # Project documentation
+└── pnpm-lock.yaml                   # Dependency lock file
+```
+
+### Configuration Files Explained
+
+<Tabs>
+  <Tab title=".npmrc">
+    ```ini .npmrc
+    shamefully-hoist=true
+    strict-peer-dependencies=false
+    auto-install-peers=true
+    ```
+    
+    - `shamefully-hoist`: Hoists dependencies for better compatibility
+    - `strict-peer-dependencies`: Allows flexible peer dependency versions
+    - `auto-install-peers`: Automatically installs peer dependencies
+  </Tab>
+  
+  <Tab title=".nvmrc / .node-version">
+    ```
+    20.10.0
+    ```
+    
+    Ensures all developers use the same Node.js version:
+    - `.nvmrc` for nvm users
+    - `.node-version` for nodenv users
+    
+    **Usage:**
+    ```bash
+    nvm use          # Reads .nvmrc
+    nodenv install   # Reads .node-version
+    ```
+  </Tab>
+  
+  <Tab title="commitlint.config.cjs">
+    ```javascript
+    module.exports = {
+      extends: ['@commitlint/config-conventional'],
+      rules: {
+        'type-enum': [
+          2,
+          'always',
+          ['feat', 'fix', 'docs', 'style', 'refactor', 'test', 'chore']
+        ]
+      }
+    };
+    ```
+    
+    Enforces Conventional Commits:
+    - `feat:` New features
+    - `fix:` Bug fixes
+    - `docs:` Documentation changes
+    - `refactor:` Code refactoring
+  </Tab>
+</Tabs>
+
+## Agent Skills Directory Structure
+
+All templates include AI agent skills in multiple directories for compatibility:
+
+```
+├── .agent/                          # Gemini & generic agents
+│   └── skills/
+│       ├── nodejs-backend-patterns/
+│       ├── tailwind-v4-shadcn/
+│       └── vercel-react-best-practices/
+├── .claude/                         # Claude Desktop
+│   └── skills/                      # (same structure)
+├── .cursor/                         # Cursor IDE
+│   └── skills/                      # (same structure)
+├── .opencode/                       # OpenCode CLI
+│   └── skills/                      # (same structure)
+└── .agents/                         # Trae & custom agents
+    └── skills/                      # (same structure)
+```
+
+### Skill Directory Contents
+
+<Tabs>
+  <Tab title="Vercel React Best Practices">
+    ```
+    vercel-react-best-practices/
+    ├── AGENTS.md                    # Agent compatibility info
+    ├── SKILL.md                     # Main skill definition
+    └── rules/
+        └── *.md                     # 57 optimization rules
+    ```
+    
+    **Categories:**
+    - Component Architecture
+    - Performance Optimization
+    - State Management
+    - Data Fetching
+    - Error Boundaries
+    - Accessibility
+    - Testing
+    - Build Optimization
+  </Tab>
+  
+  <Tab title="Node.js Backend Patterns">
+    ```
+    nodejs-backend-patterns/
+    ├── SKILL.md                     # Main skill definition
+    └── patterns/
+        ├── architecture.md          # Layered architecture
+        ├── error-handling.md        # Error patterns
+        ├── security.md              # Security best practices
+        └── performance.md           # Performance optimization
+    ```
+    
+    **Topics:**
+    - REST API design
+    - Database patterns
+    - Authentication/Authorization
+    - Caching strategies
+    - Production deployment
+  </Tab>
+  
+  <Tab title="Tailwind v4 + shadcn/ui">
+    ```
+    tailwind-v4-shadcn/
+    ├── SKILL.md                     # Main skill definition
+    ├── .claude-plugin/              # Claude-specific config
+    ├── commands/
+    │   └── setup.md                 # Setup instructions
+    ├── references/
+    │   ├── architecture.md          # Component patterns
+    │   ├── common-gotchas.md        # Common mistakes
+    │   ├── dark-mode.md             # Theme implementation
+    │   └── migration-guide.md       # v3 to v4 migration
+    ├── rules/
+    │   └── tailwind-v4-shadcn.md    # Best practices
+    └── templates/
+        └── component-template.md    # Component boilerplate
+    ```
+  </Tab>
+</Tabs>
+
+## Core Monorepo Structure
+
+The flagship template with both frontend and backend:
+
+### Complete Directory Tree
+
+```
+core/
+├── source/                          # Main application code
+│   ├── frontend/                    # React client
+│   │   ├── src/
+│   │   │   ├── api/                 # API client functions
+│   │   │   │   ├── client.ts        # Axios instance
+│   │   │   │   └── weather.ts       # Weather API calls
+│   │   │   ├── components/
+│   │   │   │   ├── layout/
+│   │   │   │   │   ├── footer.tsx
+│   │   │   │   │   ├── header.tsx
+│   │   │   │   │   └── sidebar.tsx
+│   │   │   │   ├── ui/              # shadcn/ui components
+│   │   │   │   │   ├── badge.tsx
+│   │   │   │   │   ├── button.tsx
+│   │   │   │   │   ├── card.tsx
+│   │   │   │   │   ├── code-block.tsx
+│   │   │   │   │   ├── input.tsx
+│   │   │   │   │   ├── scroll-area.tsx
+│   │   │   │   │   ├── select.tsx
+│   │   │   │   │   ├── separator.tsx
+│   │   │   │   │   └── sheet.tsx
+│   │   │   │   └── theme-toggle.tsx
+│   │   │   ├── config/
+│   │   │   │   └── index.ts         # App configuration
+│   │   │   ├── constants/
+│   │   │   │   └── ui-variants.ts   # CVA variant definitions
+│   │   │   ├── hooks/
+│   │   │   │   ├── use-theme.ts     # Dark mode hook
+│   │   │   │   └── use-weather.ts   # Weather data hook
+│   │   │   ├── lib/
+│   │   │   │   └── utils.ts         # Utility functions (cn)
+│   │   │   ├── pages/
+│   │   │   │   ├── docs/            # Documentation pages
+│   │   │   │   │   ├── getting-started.tsx
+│   │   │   │   │   ├── components.tsx
+│   │   │   │   │   └── api-reference.tsx
+│   │   │   │   ├── home.tsx         # Home page
+│   │   │   │   ├── weather.tsx      # Weather demo
+│   │   │   │   └── not-found.tsx    # 404 page
+│   │   │   ├── types/
+│   │   │   │   ├── ui.ts            # UI component types
+│   │   │   │   └── weather.ts       # Weather data types
+│   │   │   ├── App.tsx              # Root component
+│   │   │   ├── main.tsx             # Entry point
+│   │   │   └── index.css            # Global styles
+│   │   ├── public/                  # Static assets
+│   │   ├── index.html
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── vite.config.ts
+│   └── Server/                      # Express backend
+│       ├── src/
+│       │   ├── cluster/
+│       │   │   └── index.ts         # Cluster initialization
+│       │   ├── config/
+│       │   │   └── index.ts         # Environment config
+│       │   ├── constant/
+│       │   │   └── cluster.ts       # Cluster constants
+│       │   ├── controller/
+│       │   │   └── weather.controller.ts
+│       │   ├── middlewares/
+│       │   │   ├── cors.middleware.ts
+│       │   │   └── error.middleware.ts
+│       │   ├── routes/
+│       │   │   ├── index.ts         # Route aggregator
+│       │   │   └── weather.routes.ts
+│       │   ├── services/
+│       │   │   └── weather.service.ts
+│       │   ├── types/
+│       │   │   └── index.ts
+│       │   ├── app.ts               # Express setup
+│       │   └── server.ts            # Entry point
+│       ├── .env.example
+│       ├── package.json
+│       └── tsconfig.json
+├── scripts/                         # Automation utilities
+│   ├── clean.ps1                    # PowerShell cleanup
+│   ├── clean.sh                     # Bash cleanup
+│   ├── install.ps1                  # PowerShell installer
+│   └── install.sh                   # Bash installer
+├── Docs/                            # Project documentation
+│   ├── CODE_OF_CONDUCT.md
+│   ├── CONTRIBUTING.md
+│   └── SECURITY.md
+├── assets/                          # Static assets
+│   └── logo.png
+├── .husky/                          # Git hooks
+│   ├── pre-commit                   # Runs linting & Gitleaks
+│   └── commit-msg                   # Runs commitlint
+└── .vscode/                         # VS Code settings
+    ├── settings.json
+    └── extensions.json
+```
+
+### Frontend Directory Patterns
+
+<CardGroup cols={2}>
+  <Card title="/api" icon="plug">
+    **API client layer**
+    
+    - Axios instance configuration
+    - API endpoint functions
+    - Request/response interceptors
+    - Error handling logic
+    
+    **Example:**
+    ```typescript
+    // api/client.ts
+    export const apiClient = axios.create({
+      baseURL: import.meta.env.VITE_API_URL
+    });
+    ```
+  </Card>
+  
+  <Card title="/components" icon="cube">
+    **React components**
+    
+    - `/layout` - Page layouts
+    - `/ui` - Reusable UI components
+    - `/[feature]` - Feature-specific
+    - Top-level shared components
+    
+    **Naming:** PascalCase files
+  </Card>
+  
+  <Card title="/hooks" icon="anchor">
+    **Custom React hooks**
+    
+    - Data fetching hooks
+    - State management hooks
+    - Side effect hooks
+    - Utility hooks
+    
+    **Naming:** `use-*.ts` (kebab-case)
+  </Card>
+  
+  <Card title="/lib" icon="wrench">
+    **Utility functions**
+    
+    - `utils.ts` - General utilities
+    - `cn()` - className merger
+    - Validation helpers
+    - Formatters and parsers
+    
+    **Pure functions only**
+  </Card>
+  
+  <Card title="/pages" icon="file">
+    **Page components**
+    
+    - Route-level components
+    - Nested page directories
+    - Each page = one route
+    
+    **Naming:** kebab-case files
+  </Card>
+  
+  <Card title="/types" icon="code">
+    **TypeScript types**
+    
+    - Interface definitions
+    - Type aliases
+    - Enums
+    - Generic types
+    
+    **Naming:** `*.ts` (not `.tsx`)
+  </Card>
+</CardGroup>
+
+### Backend Directory Patterns
+
+<CardGroup cols={2}>
+  <Card title="/cluster" icon="server">
+    **Node.js clustering**
+    
+    - Cluster initialization
+    - Worker management
+    - Primary process logic
+    - Health monitoring
+    
+    **Single file:** `index.ts`
+  </Card>
+  
+  <Card title="/config" icon="gear">
+    **Configuration**
+    
+    - Environment variables
+    - App settings
+    - Database config
+    - External service URLs
+    
+    **Export:** `config` object
+  </Card>
+  
+  <Card title="/controller" icon="gamepad">
+    **Request controllers**
+    
+    - HTTP request handlers
+    - Input validation
+    - Response formatting
+    - Error handling
+    
+    **Pattern:** Class-based
+  </Card>
+  
+  <Card title="/middlewares" icon="filter">
+    **Express middleware**
+    
+    - Authentication
+    - Error handling
+    - Request logging
+    - CORS configuration
+    
+    **Export:** Functions
+  </Card>
+  
+  <Card title="/routes" icon="route">
+    **API routes**
+    
+    - Route definitions
+    - Route grouping
+    - Middleware application
+    - Controller mapping
+    
+    **Pattern:** Express Router
+  </Card>
+  
+  <Card title="/services" icon="briefcase">
+    **Business logic**
+    
+    - Core business logic
+    - External API calls
+    - Data processing
+    - Reusable operations
+    
+    **Pattern:** Class-based
+  </Card>
+</CardGroup>
+
+## React Template Structure
+
+Simplified frontend-only structure:
+
+```
+react/
+├── src/
+│   ├── api/                         # Same as Core
+│   ├── components/
+│   │   ├── docs/                    # Documentation components
+│   │   ├── home/                    # Home page components
+│   │   ├── layout/                  # Layout components
+│   │   ├── ui/                      # shadcn/ui components
+│   │   └── weather/                 # Weather demo components
+│   ├── config/                      # Same as Core
+│   ├── constants/                   # Same as Core
+│   ├── hooks/                       # Same as Core
+│   ├── lib/                         # Same as Core
+│   ├── pages/
+│   │   ├── docs/                    # Multiple doc pages
+│   │   ├── home.tsx
+│   │   ├── weather.tsx              # Client-only version
+│   │   └── not-found.tsx
+│   ├── types/                       # Same as Core
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── public/
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+<Note>
+The React template has the **same frontend structure** as Core, but without the `Server/` directory.
+</Note>
+
+## Node Template Structure
+
+Simplified backend-only structure:
+
+```
+node/
+├── src/
+│   ├── cluster/                     # Same as Core
+│   │   └── index.ts
+│   ├── config/                      # Same as Core
+│   │   └── index.ts
+│   ├── constant/                    # Same as Core
+│   │   └── cluster.ts
+│   ├── controller/                  # Same as Core
+│   │   └── weather.controller.ts
+│   ├── middlewares/                 # Same as Core
+│   │   └── error.middleware.ts
+│   ├── routes/                      # Same as Core
+│   │   ├── index.ts
+│   │   └── weather.routes.ts
+│   ├── services/                    # Same as Core
+│   │   └── weather.service.ts
+│   ├── types/                       # Same as Core
+│   │   └── index.ts
+│   ├── app.ts                       # Same as Core
+│   └── server.ts                    # Same as Core
+├── .env.example
+├── package.json
+└── tsconfig.json
+```
+
+<Note>
+The Node template has the **same backend structure** as Core's `Server/` directory, but at the root level.
+</Note>
+
+## File Naming Conventions
+
+<Tabs>
+  <Tab title="Frontend">
+    ### React/Frontend Files
+    
+    | File Type | Convention | Example |
+    |-----------|------------|--------|
+    | Components | PascalCase | `Button.tsx` |
+    | Pages | kebab-case | `weather.tsx` |
+    | Hooks | use-kebab-case | `use-theme.ts` |
+    | Utils | kebab-case | `format-date.ts` |
+    | Types | kebab-case | `ui-types.ts` |
+    | Constants | kebab-case | `api-routes.ts` |
+  </Tab>
+  
+  <Tab title="Backend">
+    ### Node/Backend Files
+    
+    | File Type | Convention | Example |
+    |-----------|------------|--------|
+    | Controllers | feature.controller.ts | `weather.controller.ts` |
+    | Services | feature.service.ts | `weather.service.ts` |
+    | Routes | feature.routes.ts | `weather.routes.ts` |
+    | Middleware | feature.middleware.ts | `error.middleware.ts` |
+    | Config | descriptive.ts | `database.ts` |
+    | Types | descriptive.ts | `express.d.ts` |
+  </Tab>
+  
+  <Tab title="General">
+    ### General Files
+    
+    | File Type | Convention | Example |
+    |-----------|------------|--------|
+    | Config | lowercase | `.npmrc`, `vite.config.ts` |
+    | Docs | UPPERCASE | `README.md`, `LICENSE` |
+    | Scripts | kebab-case | `clean.sh`, `install.ps1` |
+    | Tests | *.test.ts | `weather.service.test.ts` |
+  </Tab>
+</Tabs>
+
+## Import Path Aliases
+
+All templates use TypeScript path aliases for cleaner imports:
+
+### Frontend Configuration
+
+```json tsconfig.json (frontend)
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+```typescript vite.config.ts
+import { defineConfig } from 'vite';
+import path from 'path';
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  }
+});
+```
+
+### Usage Example
+
+```typescript
+// ❌ Relative imports (avoid)
+import { Button } from '../../../components/ui/button';
+import { cn } from '../../../lib/utils';
+
+// ✅ Alias imports (preferred)
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+```
+
+## Automation Scripts
+
+Located in `scripts/` (Core template only):
+
+### Script Architecture
+
+<Tabs>
+  <Tab title="clean.sh">
+    ```bash
+    #!/bin/bash
+    
+    # Phase 1: Find and delete node_modules in parallel
+    find . -name "node_modules" -type d -prune | \
+      parallel -j 4 rm -rf {}
+    
+    # Phase 2: Delete lock files
+    find . -name "pnpm-lock.yaml" -delete
+    
+    # Phase 3: Kill locking processes
+    pkill -9 node
+    pkill -9 code
+    
+    # Phase 4: Verify deletion
+    for i in {1..3}; do
+      remaining=$(find . -name "node_modules" | wc -l)
+      if [ $remaining -eq 0 ]; then
+        echo "✅ Clean complete"
+        break
+      fi
+      sleep 1
+    done
+    ```
+  </Tab>
+  
+  <Tab title="install.sh">
+    ```bash
+    #!/bin/bash
+    
+    # Install in parallel with load monitoring
+    install_with_monitor() {
+      while true; do
+        # Start installation
+        pnpm install &
+        PID=$!
+        
+        # Monitor system load
+        while kill -0 $PID 2>/dev/null; do
+          load=$(uptime | awk '{print $(NF-2)}' | sed 's/,//')
+          
+          if (( $(echo "$load > 0.9" | bc -l) )); then
+            # Suspend if load > 90%
+            kill -STOP $PID
+            wait_for_load_drop
+            kill -CONT $PID
+          fi
+          
+          sleep 2
+        done
+        
+        wait $PID
+        break
+      done
+    }
+    
+    # Run for all packages
+    for package in source/frontend source/Server; do
+      cd $package
+      install_with_monitor
+      cd ../..
+    done
+    ```
+  </Tab>
+</Tabs>
+
+## Git Hooks with Husky
+
+### Hook Configuration
+
+```
+.husky/
+├── pre-commit                       # Runs before commit
+└── commit-msg                       # Validates commit message
+```
+
+<Tabs>
+  <Tab title="pre-commit">
+    ```bash .husky/pre-commit
+    #!/bin/sh
+    
+    # Run Gitleaks to detect secrets
+    pnpm exec gitleaks protect --staged --redact
+    
+    # Exit code 1 blocks commit if secrets found
+    ```
+    
+    **Prevents:**
+    - API keys in code
+    - Passwords in config
+    - Private keys
+    - Tokens and secrets
+  </Tab>
+  
+  <Tab title="commit-msg">
+    ```bash .husky/commit-msg
+    #!/bin/sh
+    
+    # Validate commit message format
+    pnpm exec commitlint --edit $1
+    ```
+    
+    **Enforces:**
+    - Conventional Commits format
+    - `type(scope): message`
+    - Valid types: feat, fix, docs, etc.
+  </Tab>
+</Tabs>
+
+## VS Code Integration
+
+### Workspace Settings
+
+```json .vscode/settings.json
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}
+```
+
+### Recommended Extensions
+
+```json .vscode/extensions.json
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "unifiedjs.vscode-mdx"
+  ]
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture Overview" icon="sitemap" href="/architecture/overview">
+    Understand the TailStack philosophy
+  </Card>
+  <Card title="Core Monorepo" icon="layer-group" href="/architecture/core-monorepo">
+    Deep dive into full-stack architecture
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Set up your first TailStack project
+  </Card>
+  <Card title="Best Practices" icon="star" href="/guides/best-practices">
+    Learn recommended patterns and practices
+  </Card>
+</CardGroup>

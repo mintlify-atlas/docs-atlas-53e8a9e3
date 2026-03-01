@@ -1,0 +1,179 @@
+---
+title: Introduction
+description: The ultimate production-grade monorepo architecture framework for ERN stack applications
+---
+
+# Welcome to TailStack
+
+TailStack is a production-grade **project architecture** and boilerplate designed to serve as a robust starting point for your **ERN** (Express, React, Node.js) monorepos.
+
+It implements the **TailStack Architecture**—a proven structure for full-stack development—providing a scalable, secure, and maintainable foundation. It includes industry-standard tooling, rigorous linting, and a beautiful UI system, all pre-configured so you can hit the ground running.
+
+<Note>
+  **Not a rigid framework** - TailStack is designed to be fully customizable. Whether you're building a startup MVP or a large-scale enterprise solution, it offers the perfect launchpad to adapt to your specific needs.
+</Note>
+
+## Choose your architecture
+
+TailStack provides three distinct architecture templates to match your project needs:
+
+<CardGroup cols={3}>
+  <Card title="Core (Monorepo)" icon="layer-group" href="/core">
+    The flagship **TailStack Architecture**. A complete monorepo setup featuring an **ERN Stack** (Express, React, Node.js) with pre-configured inter-service communication, shared configurations, and deployment-ready workflows.
+    
+    **Best for:** Full-stack applications, startups, and complex projects requiring a unified codebase.
+  </Card>
+  
+  <Card title="React (Frontend)" icon="react" href="/react">
+    A focused frontend project architecture based on **Vite + React**. It includes a premium UI setup with Tailwind CSS 4, Shadcn UI, and modern routing.
+    
+    **Best for:** Client-side applications, dashboards, and landing pages.
+  </Card>
+  
+  <Card title="Node (Backend)" icon="node" href="/node">
+    A robust backend foundation using **Express + TypeScript**. It features advanced Node.js optimizations like clustering, security best practices, and a clean directory structure.
+    
+    **Best for:** REST APIs, microservices, and backend-only utilities.
+  </Card>
+</CardGroup>
+
+## Key features
+
+### Frontend excellence
+
+Experience a modern, lightning-fast development environment:
+
+- **Vite 6** - Next-generation frontend tooling
+- **React 19** - Built on the world's most popular UI library
+- **Tailwind CSS 4** - Utility-first CSS with the new engine for rapid UI development
+- **Shadcn UI** - Reusable, accessible, and customizable components
+- **Lucide React** - Beautiful & consistent icons
+- **Sonner** - An opinionated toast component for React
+- **React Router 7** - Declarative routing for your application
+- **Weather App Demo** - Includes a fully functional multi-page weather application to showcase the architecture
+
+### Backend power
+
+A robust and scalable server-side foundation:
+
+- **Express 5** - Fast, unopinionated, minimalist web framework for Node.js
+- **TypeScript** - Type safety for reliable and maintainable code
+- **Node Cluster** - Utilizes multi-core systems for maximum performance
+- **Security** - Pre-configured **CORS** and security best practices
+
+<CodeGroup>
+```typescript server.ts
+import app from './app';
+import { config } from './config';
+import { initializeCluster } from './cluster';
+
+initializeCluster(() => {
+  const server = app.listen(config.port, () => {
+    console.log(`✅ Worker ${process.pid} started on port ${config.port}`);
+  });
+
+  // Graceful shutdown
+  const gracefulShutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server for worker ${process.pid}`);
+    server.close(() => {
+      console.log(`HTTP server closed for worker ${process.pid}`);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+});
+```
+
+```typescript app.ts
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middlewares/cors';
+import routes from './routes';
+
+const app = express();
+
+// Middlewares
+app.use(corsMiddleware);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use('/api', routes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+export default app;
+```
+</CodeGroup>
+
+### Monorepo & development tools
+
+TailStack allows you to focus on code, not configuration:
+
+- **Commitlint** - Enforces Conventional Commits for clean history
+- **Husky** - Git hooks for pre-commit linting and security checks
+- **Automation Scripts** - Smart, cross-platform automation utilities for high-velocity development
+  - `clean` - Lightning-fast deep purge of `node_modules` and locks
+  - `install` - Parallel installer with intelligent CPU/RAM load monitoring
+- **Documentation** - Ready-to-use `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`
+- **Configs** - Standardized `.npmrc`, `.nvmrc`, and `.node-version` for consistent environments
+
+### AI-powered development
+
+TailStack comes supercharged with pre-configured **Agent Skills** to accelerate AI-driven development.
+
+<Tip>
+  Skills are reusable capabilities for AI agents that provide procedural knowledge to help agents accomplish specific tasks more effectively. Think of them as plugins or extensions that enhance what your AI agents can do.
+</Tip>
+
+**Pre-configured skills in TailStack:**
+
+1. **Vercel React Best Practices** - A comprehensive performance optimization guide for React applications with 57 rules across 8 categories
+2. **Node.js Backend Patterns** - Comprehensive guidance for building scalable, maintainable, and production-ready Node.js backend applications
+3. **Tailwind v4 + shadcn/ui Production Stack** - Enables AI agents to correctly generate and work with components from shadcn/ui and Tailwind CSS v4
+
+**Supported AI agents:** Gemini, Claude, Codex, Cursor, Opencode, Trae
+
+## Get started in minutes
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Scaffold a new project and get it running in under 5 minutes
+  </Card>
+  
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation instructions for all three templates
+  </Card>
+</CardGroup>
+
+## Why TailStack?
+
+<CardGroup cols={2}>
+  <Card title="Production-ready" icon="shield-check">
+    Pre-configured with security best practices, linting, and Git hooks
+  </Card>
+  
+  <Card title="Developer experience" icon="code">
+    Modern tooling with hot reload, TypeScript, and intelligent automation
+  </Card>
+  
+  <Card title="Scalable architecture" icon="chart-line">
+    Monorepo structure with Node clustering and optimized build pipelines
+  </Card>
+  
+  <Card title="Fully customizable" icon="sliders">
+    Not a rigid framework - adapt and extend to your specific needs
+  </Card>
+</CardGroup>
+
+---
+
+<p align="center">
+  Built with the <strong>TailStack Architecture</strong>.
+</p>

@@ -1,0 +1,168 @@
+---
+title: 'Server Setup'
+description: 'Learn how to set up and configure the Express server in TailStack'
+---
+
+## Overview
+
+TailStack uses a clean separation between application configuration (`app.ts`) and server initialization (`server.ts`). This architecture makes it easy to test your application logic separately from server concerns.
+
+## Server Architecture
+
+The server setup follows a two-file pattern:
+
+- **app.ts** - Configures the Express application with middleware and routes
+- **server.ts** - Initializes the cluster and starts the HTTP server
+
+## Application Setup (app.ts)
+
+The `app.ts` file configures your Express application with middleware and routing:
+
+```typescript title="packages/core/source/Server/src/app.ts"
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middlewares/cors';
+import routes from './routes';
+
+const app = express();
+
+// Middlewares
+app.use(corsMiddleware);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use('/api', routes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.path} not found`,
+  });
+});
+
+export default app;
+```
+
+### Key Features
+
+<Steps>
+  <Step title="Middleware Stack">
+    The application uses a carefully ordered middleware stack:
+    - CORS middleware for cross-origin requests
+    - JSON body parser for API requests
+    - URL-encoded body parser for form data
+    - Cookie parser for session management
+  </Step>
+  
+  <Step title="API Routes">
+    All API routes are mounted under the `/api` prefix for clear separation between API and other endpoints.
+  </Step>
+  
+  <Step title="Health Check">
+    A `/health` endpoint is included for monitoring and load balancer health checks.
+  </Step>
+  
+  <Step title="404 Handler">
+    A catch-all 404 handler provides consistent error responses for undefined routes.
+  </Step>
+</Steps>
+
+## Server Initialization (server.ts)
+
+The `server.ts` file handles cluster initialization and graceful shutdown:
+
+```typescript title="packages/core/source/Server/src/server.ts"
+import app from './app';
+import { config } from './config';
+import { initializeCluster } from './cluster';
+
+initializeCluster(() => {
+  const server = app.listen(config.port, () => {
+    console.log(`✅ Worker ${process.pid} started on port ${config.port}`);
+  });
+
+  // Graceful shutdown
+  const gracefulShutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server for worker ${process.pid}`);
+    server.close(() => {
+      console.log(`HTTP server closed for worker ${process.pid}`);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+});
+```
+
+### Graceful Shutdown
+
+The server implements graceful shutdown to handle:
+
+- **SIGTERM** - Termination signal from process managers or orchestrators
+- **SIGINT** - Interrupt signal from Ctrl+C in development
+
+When a shutdown signal is received:
+
+1. The server stops accepting new connections
+2. Existing connections are allowed to complete
+3. The process exits cleanly with code 0
+
+<Note>
+  Graceful shutdown ensures that in-flight requests are not interrupted, providing a better experience for clients and preventing data loss.
+</Note>
+
+## Starting the Server
+
+Start your development server:
+
+```bash
+npm run dev:server
+```
+
+For production:
+
+```bash
+npm run build:server
+npm run start:server
+```
+
+## Environment Variables
+
+The server reads configuration from environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `5000` | Port number for the server |
+| `NODE_ENV` | `development` | Environment mode |
+| `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
+| `WORKERS` | CPU count | Number of cluster workers |
+
+<Tip>
+  See the [Configuration](/backend/configuration) guide for detailed information about environment variables and configuration management.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Clustering" icon="server" href="/backend/clustering">
+    Learn how TailStack uses Node.js clustering for multi-core performance
+  </Card>
+  <Card title="Routing" icon="route" href="/backend/routing">
+    Explore Express routing patterns and create API endpoints
+  </Card>
+  <Card title="Middleware" icon="filter" href="/backend/middleware">
+    Configure CORS, security, and custom middleware
+  </Card>
+  <Card title="Configuration" icon="gear" href="/backend/configuration">
+    Manage environment variables and server configuration
+  </Card>
+</CardGroup>

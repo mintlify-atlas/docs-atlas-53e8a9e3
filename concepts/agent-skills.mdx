@@ -1,0 +1,502 @@
+---
+title: Agent Skills
+description: Pre-configured AI agent skills for React, Node.js, and Tailwind development
+---
+
+TailStack comes supercharged with pre-configured **Agent Skills** - reusable capabilities that help AI agents write, refactor, and optimize code with domain-specific expertise.
+
+## What are Agent Skills?
+
+Skills are **procedural knowledge packages** that enhance AI agents' ability to accomplish specific tasks more effectively. Think of them as plugins or extensions that provide:
+
+- Domain-specific best practices
+- Framework-specific patterns
+- Performance optimization rules
+- Security guidelines
+- Common gotchas and solutions
+
+<Info>
+  Learn more at [skills.sh/docs](https://skills.sh/docs)
+</Info>
+
+## Pre-configured Skills
+
+TailStack includes three production-tested skills:
+
+<CardGroup cols={3}>
+  <Card title="Vercel React" icon="react">
+    57 performance optimization rules across 8 categories
+  </Card>
+  <Card title="Node.js Backend" icon="server">
+    Scalable backend patterns and best practices
+  </Card>
+  <Card title="Tailwind + Shadcn" icon="palette">
+    Tailwind v4 + shadcn/ui production stack
+  </Card>
+</CardGroup>
+
+## 1. Vercel React Best Practices
+
+Maintained by Vercel, this skill contains **57 rules across 8 categories** prioritized by impact to guide automated refactoring and code generation.
+
+### Categories by Priority
+
+| Priority | Category | Impact | Rules |
+|----------|----------|--------|-------|
+| 1 | Eliminating Waterfalls | CRITICAL | 5 |
+| 2 | Bundle Size Optimization | CRITICAL | 5 |
+| 3 | Server-Side Performance | HIGH | 7 |
+| 4 | Client-Side Data Fetching | MEDIUM-HIGH | 4 |
+| 5 | Re-render Optimization | MEDIUM | 12 |
+| 6 | Rendering Performance | MEDIUM | 9 |
+| 7 | JavaScript Performance | LOW-MEDIUM | 12 |
+| 8 | Advanced Patterns | LOW | 3 |
+
+### Example Rules
+
+<Accordion title="Critical: Eliminating Waterfalls">
+  **Problem**: Sequential `await` operations create network waterfalls.
+  
+  ```tsx
+  // ❌ Bad: 3 network round trips
+  const user = await fetchUser()
+  const posts = await fetchPosts()
+  const comments = await fetchComments()
+  
+  // ✅ Good: 1 network round trip
+  const [user, posts, comments] = await Promise.all([
+    fetchUser(),
+    fetchPosts(),
+    fetchComments()
+  ])
+  ```
+</Accordion>
+
+<Accordion title="Critical: Bundle Size Optimization">
+  **Problem**: Barrel file imports load entire libraries.
+  
+  ```tsx
+  // ❌ Bad: Loads 1,583 modules (200-800ms)
+  import { Check, X, Menu } from 'lucide-react'
+  
+  // ✅ Good: Loads only 3 modules
+  import Check from 'lucide-react/dist/esm/icons/check'
+  import X from 'lucide-react/dist/esm/icons/x'
+  import Menu from 'lucide-react/dist/esm/icons/menu'
+  ```
+</Accordion>
+
+<Accordion title="High: Server-Side Performance">
+  **Rule**: Use `React.cache()` for per-request deduplication.
+  
+  ```tsx
+  import { cache } from 'react'
+  
+  export const getCurrentUser = cache(async () => {
+    const session = await auth()
+    if (!session?.user?.id) return null
+    return await db.user.findUnique({
+      where: { id: session.user.id }
+    })
+  })
+  
+  // Multiple calls within a single request execute query only once
+  ```
+</Accordion>
+
+### When to Use
+
+- Writing new React components or Next.js pages
+- Implementing data fetching (client or server-side)
+- Reviewing code for performance issues
+- Refactoring existing React/Next.js code
+- Optimizing bundle size or load times
+
+**Official Docs**: [skills.sh/vercel-labs/agent-skills/vercel-react-best-practices](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)
+
+## 2. Node.js Backend Patterns
+
+Comprehensive guidance for building **scalable, maintainable, and production-ready** Node.js backend applications.
+
+### Covered Topics
+
+<CardGroup cols={2}>
+  <Card title="Layered Architecture" icon="layer-group">
+    Controllers, Services, Repositories pattern
+  </Card>
+  <Card title="Middleware Patterns" icon="filter">
+    Authentication, validation, rate limiting, logging
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Custom error classes and global error handlers
+  </Card>
+  <Card title="Database Integration" icon="database">
+    PostgreSQL, MongoDB, transactions, connection pooling
+  </Card>
+  <Card title="Authentication" icon="key">
+    JWT, refresh tokens, bcrypt password hashing
+  </Card>
+  <Card title="Caching Strategies" icon="bolt">
+    Redis integration, cache decorators, TTL management
+  </Card>
+</CardGroup>
+
+### Example Patterns
+
+<Accordion title="Layered Architecture">
+  **Controller Layer** (HTTP handling):
+  ```typescript
+  export class UserController {
+    constructor(private userService: UserService) {}
+    
+    async createUser(req: Request, res: Response, next: NextFunction) {
+      try {
+        const userData: CreateUserDTO = req.body
+        const user = await this.userService.createUser(userData)
+        res.status(201).json(user)
+      } catch (error) {
+        next(error)
+      }
+    }
+  }
+  ```
+  
+  **Service Layer** (Business logic):
+  ```typescript
+  export class UserService {
+    constructor(private userRepository: UserRepository) {}
+    
+    async createUser(userData: CreateUserDTO): Promise<User> {
+      const existingUser = await this.userRepository.findByEmail(userData.email)
+      if (existingUser) {
+        throw new ValidationError("Email already exists")
+      }
+      
+      const hashedPassword = await bcrypt.hash(userData.password, 10)
+      return await this.userRepository.create({
+        ...userData,
+        password: hashedPassword
+      })
+    }
+  }
+  ```
+  
+  **Repository Layer** (Data access):
+  ```typescript
+  export class UserRepository {
+    constructor(private db: Pool) {}
+    
+    async create(userData: CreateUserDTO): Promise<UserEntity> {
+      const query = `
+        INSERT INTO users (name, email, password)
+        VALUES ($1, $2, $3)
+        RETURNING *
+      `
+      const { rows } = await this.db.query(query, [
+        userData.name,
+        userData.email,
+        userData.password
+      ])
+      return rows[0]
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Authentication Middleware">
+  ```typescript
+  import jwt from 'jsonwebtoken'
+  
+  export const authenticate = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '')
+      
+      if (!token) {
+        throw new UnauthorizedError('No token provided')
+      }
+      
+      const payload = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload
+      req.user = payload
+      next()
+    } catch (error) {
+      next(new UnauthorizedError('Invalid token'))
+    }
+  }
+  
+  // Usage
+  router.get('/profile', authenticate, getProfile)
+  ```
+</Accordion>
+
+### When to Use
+
+- Building REST APIs or GraphQL servers
+- Creating microservices with Node.js
+- Implementing authentication and authorization
+- Designing scalable backend architectures
+- Setting up middleware and error handling
+- Integrating databases (SQL and NoSQL)
+
+**Official Docs**: [skills.sh/wshobson/agents/nodejs-backend-patterns](https://skills.sh/wshobson/agents/nodejs-backend-patterns)
+
+## 3. Tailwind v4 + shadcn/ui Production Stack
+
+Enables AI agents to correctly generate, modify, and work with components from **shadcn/ui** and **Tailwind CSS v4**.
+
+### Key Features
+
+- **4-Step Architecture**: CSS variables → Tailwind mapping → base styles → automatic dark mode
+- **Prevents 8 Documented Errors**: Common pitfalls and their solutions
+- **Production-Tested**: Used in WordPress Auditor and other live projects
+- **Tailwind v4 Specific**: Handles breaking changes from v3
+
+### The Four-Step Pattern
+
+```css
+/* Step 1: Define CSS variables at root */
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --primary: hsl(221.2 83.2% 53.3%);
+}
+
+.dark {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --primary: hsl(217.2 91.2% 59.8%);
+}
+
+/* Step 2: Map variables to Tailwind utilities */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+}
+
+/* Step 3: Apply base styles */
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+/* Step 4: Result - Automatic dark mode */
+/* <div className="bg-background text-foreground"> */
+/* No dark: variants needed - theme switches automatically */
+```
+
+### Common Errors Prevented
+
+<Accordion title="Error #1: tw-animate-css Import Error">
+  **Error**: "Cannot find module 'tailwindcss-animate'"
+  
+  **Cause**: shadcn/ui deprecated `tailwindcss-animate` for v4.
+  
+  **Solution**:
+  ```bash
+  pnpm add -D tw-animate-css
+  ```
+  
+  ```css
+  @import "tailwindcss";
+  @import "tw-animate-css";
+  ```
+</Accordion>
+
+<Accordion title="Error #2: Colors Not Working">
+  **Error**: `bg-primary` doesn't apply styles
+  
+  **Cause**: Missing `@theme inline` mapping
+  
+  **Solution**: Add theme mapping block:
+  ```css
+  @theme inline {
+    --color-background: var(--background);
+    --color-primary: var(--primary);
+  }
+  ```
+</Accordion>
+
+<Accordion title="Error #3: Build Fails with tailwind.config.ts">
+  **Error**: "Unexpected config file"
+  
+  **Cause**: v4 doesn't use `tailwind.config.ts` (v3 legacy)
+  
+  **Solution**:
+  ```bash
+  rm tailwind.config.ts
+  ```
+  v4 configuration happens in CSS using `@theme` directive.
+</Accordion>
+
+### When to Use
+
+- Initializing React projects with Tailwind v4
+- Fixing color issues or dark mode bugs
+- Migrating from Tailwind v3 to v4
+- Setting up shadcn/ui components
+- Implementing theme switching
+
+**Official Docs**: [skills.sh/jezweb/claude-skills/tailwind-v4-shadcn](https://skills.sh/jezweb/claude-skills/tailwind-v4-shadcn)
+
+## Supported AI Agents
+
+TailStack includes skill configurations for:
+
+<CardGroup cols={3}>
+  <Card title="Gemini" icon="gem">
+    `.agents/` directory
+  </Card>
+  <Card title="Claude" icon="message">
+    `.claude/` directory
+  </Card>
+  <Card title="Codex" icon="code">
+    `.codex/` directory
+  </Card>
+  <Card title="Cursor" icon="arrow-pointer">
+    `.cursor/` directory
+  </Card>
+  <Card title="OpenCode" icon="terminal">
+    `.opencode/` directory
+  </Card>
+  <Card title="Trae" icon="brain">
+    `.trae/` directory
+  </Card>
+</CardGroup>
+
+## Skill Directory Structure
+
+```
+packages/core/
+├── .agents/
+│   └── skills/
+│       ├── vercel-react-best-practices/
+│       │   ├── SKILL.md
+│       │   ├── AGENTS.md
+│       │   └── rules/
+│       │       ├── async-parallel.md
+│       │       ├── bundle-barrel-imports.md
+│       │       └── ...
+│       ├── nodejs-backend-patterns/
+│       │   └── SKILL.md
+│       └── tailwind-v4-shadcn/
+│           ├── SKILL.md
+│           ├── templates/
+│           │   ├── vite.config.ts
+│           │   ├── theme-provider.tsx
+│           │   └── index.css
+│           └── references/
+│               ├── migration-guide.md
+│               └── dark-mode.md
+├── .claude/         # Same structure
+├── .cursor/         # Same structure
+├── .opencode/       # Same structure
+└── ...
+```
+
+## Using Skills with AI Agents
+
+### Claude Desktop
+
+Claude automatically reads `.claude/skills/` directories:
+
+```json
+// .claude/skills/vercel-react-best-practices/SKILL.md
+---
+name: vercel-react-best-practices
+description: React and Next.js performance optimization guidelines...
+---
+```
+
+### Cursor
+
+Cursor reads `.cursor/skills/` and applies patterns in real-time:
+
+- Suggest optimizations while coding
+- Auto-complete with best practices
+- Refactor code following patterns
+
+### OpenCode
+
+OpenCode integrates skills from `.opencode/skills/`:
+
+```bash
+# Skills are automatically available in chat
+"Optimize this React component for performance"
+"Set up Tailwind v4 with dark mode"
+"Create a REST API with Express following best practices"
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Skills Updated" icon="arrow-rotate-right">
+    Periodically update skill repositories to get latest patterns
+  </Card>
+  <Card title="Reference Official Docs" icon="book">
+    Skills complement but don't replace official documentation
+  </Card>
+  <Card title="Customize for Your Stack" icon="screwdriver-wrench">
+    Fork skills and adapt them to your specific needs
+  </Card>
+  <Card title="Share Learnings" icon="share-nodes">
+    Contribute improvements back to skill repositories
+  </Card>
+</CardGroup>
+
+## Creating Custom Skills
+
+You can create project-specific skills:
+
+```markdown
+# .agents/skills/my-custom-skill/SKILL.md
+---
+name: my-custom-skill
+description: Custom patterns for our application
+---
+
+## Authentication Flow
+
+We use OAuth2 with refresh token rotation:
+
+```typescript
+// Example implementation
+```
+
+## API Error Format
+
+All errors follow this structure:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input",
+    "details": [...]
+  }
+}
+```
+```
+
+## Resources
+
+- **Skills.sh Documentation**: [skills.sh/docs](https://skills.sh/docs)
+- **Vercel React Skills**: [skills.sh/vercel-labs/agent-skills/vercel-react-best-practices](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)
+- **Node.js Backend Patterns**: [skills.sh/wshobson/agents/nodejs-backend-patterns](https://skills.sh/wshobson/agents/nodejs-backend-patterns)
+- **Tailwind v4 + Shadcn**: [skills.sh/jezweb/claude-skills/tailwind-v4-shadcn](https://skills.sh/jezweb/claude-skills/tailwind-v4-shadcn)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend Stack" icon="palette" href="/concepts/frontend-stack">
+    Explore React 19 and Vite 7 setup
+  </Card>
+  <Card title="Backend Stack" icon="server" href="/concepts/backend-stack">
+    Learn about Express 5 and clustering
+  </Card>
+</CardGroup>

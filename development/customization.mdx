@@ -1,0 +1,836 @@
+---
+title: Customization Guide
+description: Learn how to customize TailStack's architecture, configurations, and components for your project needs
+---
+
+## Overview
+
+TailStack is designed as a **flexible foundation**, not a rigid framework. This guide covers how to customize every aspect of the architecture to match your project requirements.
+
+## Configuration Files
+
+TailStack includes multiple configuration files that control different aspects of your development environment.
+
+### Node Version Management
+
+**Files:** `.nvmrc`, `.node-version`
+
+Change the required Node.js version:
+
+```bash
+# .nvmrc and .node-version
+20.11.0  # Update to your desired version
+```
+
+**After changing:**
+```bash
+nvm install      # Install new version
+nvm use          # Switch to new version
+pnpm install     # Reinstall dependencies
+```
+
+<Warning>
+Ensure your team is aware of Node version changes. Update your CI/CD pipelines accordingly.
+</Warning>
+
+### Package Manager Configuration
+
+**File:** `.npmrc`
+
+Customize PNPM behavior:
+
+```ini
+# Default configuration
+auto-install-peers=true
+strict-peer-dependencies=true
+
+# Additional useful options:
+# Disable hoisting (strict isolation)
+hoist=false
+
+# Use specific registry
+registry=https://registry.npmjs.org/
+
+# Set store directory
+store-dir=/path/to/pnpm-store
+
+# Enable or disable shamefully-hoist
+shamefully-hoist=false
+
+# Configure network settings
+network-timeout=60000
+```
+
+### Editor Configuration
+
+**File:** `.editorconfig`
+
+Modify code style preferences:
+
+```ini
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+# Change indent size
+[*.{js,jsx,ts,tsx}]
+indent_style = space
+indent_size = 4  # Change from 2 to 4
+
+# Add custom file patterns
+[*.yml]
+indent_size = 2
+```
+
+### Commit Lint Rules
+
+**File:** `commitlint.config.cjs`
+
+Customize commit message requirements:
+
+```javascript
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    // Increase max lengths
+    'header-max-length': [2, 'always', 200],
+    'body-max-line-length': [2, 'always', 300],
+    
+    // Add custom types
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat',
+        'fix',
+        'docs',
+        'style',
+        'refactor',
+        'perf',
+        'test',
+        'build',
+        'ci',
+        'chore',
+        'revert',
+        'wip',      // Work in progress
+        'hotfix',   // Emergency fixes
+      ],
+    ],
+    
+    // Require scope
+    'scope-empty': [2, 'never'],
+    
+    // Allow sentence case
+    'subject-case': [2, 'always', 'sentence-case'],
+  },
+};
+```
+
+## Package Scripts
+
+Customize npm scripts in each `package.json`.
+
+### Root Package Scripts
+
+**File:** `package.json` (root)
+
+```json
+{
+  "scripts": {
+    "dev": "pnpm --filter @your-org/core dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "clean": "./scripts/clean.sh",
+    "install:parallel": "./scripts/install.sh",
+    "typecheck": "pnpm -r typecheck",
+    "prepare": "husky"
+  }
+}
+```
+
+### Core Package Scripts
+
+**File:** `packages/core/package.json`
+
+Customize development commands:
+
+```json
+{
+  "scripts": {
+    // Run services individually
+    "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\"",
+    "dev:frontend": "pnpm --filter ./source/frontend dev",
+    "dev:backend": "pnpm --filter ./source/Server dev",
+    
+    // Add database scripts
+    "db:migrate": "pnpm --filter ./source/Server db:migrate",
+    "db:seed": "pnpm --filter ./source/Server db:seed",
+    
+    // Add testing scripts
+    "test:e2e": "playwright test",
+    "test:unit": "pnpm -r test",
+    
+    // Add Docker commands
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  }
+}
+```
+
+## Frontend Customization
+
+### Vite Configuration
+
+**File:** `packages/core/source/frontend/vite.config.ts`
+
+```typescript
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  
+  // Customize server settings
+  server: {
+    port: 5173,
+    host: true,  // Expose to network
+    open: true,  // Auto-open browser
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
+  
+  // Add path aliases
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@components': path.resolve(__dirname, './src/components'),
+      '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@utils': path.resolve(__dirname, './src/utils'),
+      '@types': path.resolve(__dirname, './src/types'),
+    },
+  },
+  
+  // Build optimizations
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
+});
+```
+
+### Tailwind Configuration
+
+**File:** `packages/core/source/frontend/tailwind.config.js`
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      // Add custom colors
+      colors: {
+        brand: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          500: '#0ea5e9',
+          900: '#0c4a6e',
+        },
+      },
+      
+      // Custom fonts
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['Fira Code', 'monospace'],
+      },
+      
+      // Custom spacing
+      spacing: {
+        '128': '32rem',
+        '144': '36rem',
+      },
+      
+      // Custom breakpoints
+      screens: {
+        '3xl': '1920px',
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+### Adding Routes
+
+**File:** `packages/core/source/frontend/src/App.tsx`
+
+```tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import About from './pages/About';
+import Dashboard from './pages/Dashboard';
+import NotFound from './pages/NotFound';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Add your custom routes */}
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+```
+
+### Adding Components
+
+Create new components in `source/frontend/src/components/`:
+
+```bash
+mkdir -p source/frontend/src/components/CustomCard
+touch source/frontend/src/components/CustomCard/index.tsx
+```
+
+**Example component:**
+
+```tsx
+// source/frontend/src/components/CustomCard/index.tsx
+import { ReactNode } from 'react';
+
+interface CustomCardProps {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}
+
+export function CustomCard({ title, children, className = '' }: CustomCardProps) {
+  return (
+    <div className={`rounded-lg border bg-card p-6 shadow-sm ${className}`}>
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <div>{children}</div>
+    </div>
+  );
+}
+```
+
+### Using Shadcn UI Components
+
+Add new Shadcn UI components:
+
+```bash
+# Navigate to frontend directory
+cd source/frontend
+
+# Add specific component
+pnpx shadcn@latest add button
+pnpx shadcn@latest add card
+pnpx shadcn@latest add dialog
+pnpx shadcn@latest add dropdown-menu
+```
+
+Components are added to `src/components/ui/`.
+
+<Tip>
+**Pro Tip:** Use `pnpx shadcn@latest add` to browse and add components interactively.
+</Tip>
+
+## Backend Customization
+
+### Express Server Configuration
+
+**File:** `packages/core/source/Server/src/index.ts` (or `server.ts`)
+
+```typescript
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(helmet()); // Security headers
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+}));
+app.use(compression()); // Compress responses
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Custom middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Routes
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Add your custom routes
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import apiRoutes from './routes/api';
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api', apiRoutes);
+
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+### Adding API Routes
+
+Create route files in `source/Server/src/routes/`:
+
+```bash
+mkdir -p source/Server/src/routes
+touch source/Server/src/routes/users.ts
+```
+
+**Example route:**
+
+```typescript
+// source/Server/src/routes/users.ts
+import { Router } from 'express';
+
+const router = Router();
+
+router.get('/', async (req, res) => {
+  // Fetch users logic
+  res.json({ users: [] });
+});
+
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  // Fetch user by ID logic
+  res.json({ user: { id } });
+});
+
+router.post('/', async (req, res) => {
+  // Create user logic
+  res.status(201).json({ message: 'User created' });
+});
+
+export default router;
+```
+
+### Adding Middleware
+
+Create middleware in `source/Server/src/middleware/`:
+
+```typescript
+// source/Server/src/middleware/auth.ts
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+export function authenticate(req: Request, res: Response, next: NextFunction) {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
+```
+
+**Usage:**
+```typescript
+import { authenticate } from './middleware/auth';
+
+router.get('/protected', authenticate, (req, res) => {
+  res.json({ message: 'Protected route', user: req.user });
+});
+```
+
+### Database Integration
+
+Add your preferred database:
+
+<Tabs>
+  <Tab title="Prisma">
+    ```bash
+    # Install Prisma
+    pnpm --filter ./source/Server add prisma @prisma/client
+    pnpm --filter ./source/Server add -D prisma
+    
+    # Initialize Prisma
+    cd source/Server
+    pnpx prisma init
+    ```
+    
+    **Configure `schema.prisma`:**
+    ```prisma
+    datasource db {
+      provider = "postgresql"
+      url      = env("DATABASE_URL")
+    }
+    
+    generator client {
+      provider = "prisma-client-js"
+    }
+    
+    model User {
+      id        Int      @id @default(autoincrement())
+      email     String   @unique
+      name      String?
+      createdAt DateTime @default(now())
+    }
+    ```
+  </Tab>
+  
+  <Tab title="MongoDB">
+    ```bash
+    # Install MongoDB driver
+    pnpm --filter ./source/Server add mongodb
+    ```
+    
+    **Setup connection:**
+    ```typescript
+    import { MongoClient } from 'mongodb';
+    
+    const client = new MongoClient(process.env.MONGODB_URI!);
+    await client.connect();
+    const db = client.db('myapp');
+    
+    export default db;
+    ```
+  </Tab>
+  
+  <Tab title="PostgreSQL">
+    ```bash
+    # Install pg driver
+    pnpm --filter ./source/Server add pg
+    pnpm --filter ./source/Server add -D @types/pg
+    ```
+    
+    **Setup connection:**
+    ```typescript
+    import { Pool } from 'pg';
+    
+    export const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Monorepo Structure
+
+### Adding New Packages
+
+Create additional packages in the `packages/` directory:
+
+```bash
+mkdir -p packages/shared
+cd packages/shared
+pnpm init
+```
+
+**Example shared package structure:**
+```
+packages/shared/
+├── package.json
+├── src/
+│   ├── types/
+│   │   └── index.ts
+│   ├── utils/
+│   │   └── index.ts
+│   └── index.ts
+└── tsconfig.json
+```
+
+**Reference in other packages:**
+```json
+{
+  "dependencies": {
+    "@your-org/shared": "workspace:*"
+  }
+}
+```
+
+### Workspace Configuration
+
+**File:** `pnpm-workspace.yaml` (create at root)
+
+```yaml
+packages:
+  - 'packages/*'
+  - 'packages/core/source/frontend'
+  - 'packages/core/source/Server'
+  # Add custom packages
+  - 'apps/*'
+  - 'libs/*'
+```
+
+## Automation Scripts
+
+### Customizing Clean Script
+
+**File:** `scripts/clean.sh`
+
+Modify targets to clean:
+
+```bash
+# Add more targets
+find . -name "node_modules" -type d -print > "$targets_file"
+find . -name "pnpm-lock.yaml" -type f -print >> "$targets_file"
+find . -name "dist" -type d -print >> "$targets_file"  # Add dist folders
+find . -name ".turbo" -type d -print >> "$targets_file" # Add Turbo cache
+```
+
+### Customizing Install Script
+
+**File:** `scripts/install.sh`
+
+Adjust performance thresholds:
+
+```bash
+# Change thresholds
+CRITICAL_THRESHOLD=85  # Lower from 90 for more aggressive throttling
+SAFE_THRESHOLD=70      # Lower from 75 for earlier resumption
+
+# Adjust concurrency
+logical_cores=$(nproc)
+max_concurrent=$((logical_cores * 3))  # Increase multiplier
+```
+
+## Git Hooks
+
+### Adding Custom Hooks
+
+Create new hooks in `.husky/`:
+
+```bash
+pnpm husky add .husky/pre-push "pnpm test"
+chmod +x .husky/pre-push
+```
+
+**Example pre-push hook:**
+
+```bash
+#!/usr/bin/env sh
+
+echo "🧪 Running tests before push..."
+pnpm -r test
+
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Push aborted."
+  exit 1
+fi
+
+echo "✅ Tests passed. Proceeding with push."
+```
+
+### Modifying Lint-Staged
+
+**File:** `package.json`
+
+```json
+{
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ],
+    "*": [
+      "gitleaks protect --staged --redact"
+    ]
+  }
+}
+```
+
+## Environment Variables
+
+### Creating Environment Templates
+
+**File:** `source/frontend/.env.example`
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:3000
+VITE_API_TIMEOUT=30000
+
+# Feature Flags
+VITE_ENABLE_ANALYTICS=false
+VITE_ENABLE_DEBUG=true
+
+# External Services
+VITE_GOOGLE_MAPS_KEY=your-api-key-here
+```
+
+**File:** `source/Server/.env.example`
+
+```bash
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
+
+# Authentication
+JWT_SECRET=your-secret-key
+JWT_EXPIRATION=7d
+
+# External APIs
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
+```
+
+<Warning>
+**Security:** Always use `.env.example` for templates. Never commit actual `.env` files with sensitive data.
+</Warning>
+
+## TypeScript Configuration
+
+### Shared TypeScript Config
+
+Create a shared config at the root:
+
+**File:** `tsconfig.base.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  }
+}
+```
+
+**Extend in packages:**
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+## Deployment Configuration
+
+### Docker Setup
+
+Create `Dockerfile` at root:
+
+```dockerfile
+FROM node:24.13.0-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
+
+# Build stage
+FROM base AS builder
+WORKDIR /app
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm -r build
+
+# Production stage
+FROM base AS runner
+WORKDIR /app
+COPY --from=builder /app/packages/core/source/frontend/dist ./frontend
+COPY --from=builder /app/packages/core/source/Server/dist ./server
+EXPOSE 3000
+CMD ["node", "server/index.js"]
+```
+
+### Docker Compose
+
+**File:** `docker-compose.yml`
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@db:5432/myapp
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=myapp
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+```
+
+## Next Steps
+
+- Explore [deployment strategies](/deployment/overview)
+- Review [architecture patterns](/architecture/overview)
+- Learn about [performance optimization](/performance/overview)

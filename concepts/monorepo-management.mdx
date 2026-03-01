@@ -1,0 +1,294 @@
+---
+title: Monorepo Management
+description: PNPM workspaces, monorepo structure, and package management in TailStack
+---
+
+TailStack uses **PNPM workspaces** to manage its monorepo architecture, providing efficient dependency management, workspace protocols, and fast installation times.
+
+## PNPM Configuration
+
+### Package Manager
+
+TailStack enforces PNPM version **10.12.1** across all packages using the `packageManager` field:
+
+```json package.json
+{
+  "packageManager": "pnpm@10.12.1"
+}
+```
+
+This ensures consistent behavior across all development environments and CI/CD pipelines.
+
+### PNPM Configuration (.npmrc)
+
+```ini .npmrc
+auto-install-peers=true
+strict-peer-dependencies=true
+```
+
+<Info>
+  **auto-install-peers**: Automatically installs peer dependencies, reducing manual dependency management.
+  
+  **strict-peer-dependencies**: Enforces peer dependency requirements, catching version conflicts early.
+</Info>
+
+## Monorepo Structure
+
+TailStack provides three distinct architecture templates:
+
+<CardGroup cols={3}>
+  <Card title="Core" icon="layer-group" href="/packages/core">
+    Full ERN Stack monorepo with frontend and backend
+  </Card>
+  <Card title="React" icon="react" href="/packages/react">
+    Frontend-only architecture with Vite + React
+  </Card>
+  <Card title="Node" icon="node" href="/packages/node">
+    Backend-only architecture with Express + TypeScript
+  </Card>
+</CardGroup>
+
+### Core Monorepo Architecture
+
+The flagship **Core** package implements a complete monorepo setup:
+
+```
+packages/core/
+├── package.json              # Root configuration
+├── .npmrc                    # PNPM settings
+├── source/
+│   ├── frontend/             # React application
+│   │   ├── package.json      # Frontend dependencies
+│   │   ├── src/
+│   │   └── vite.config.ts
+│   └── Server/               # Express backend
+│       ├── package.json      # Backend dependencies
+│       ├── src/
+│       └── tsconfig.json
+├── scripts/                  # Automation utilities
+│   ├── clean.sh / clean.ps1
+│   └── install.sh / install.ps1
+└── .git/                     # Version control
+```
+
+## Workspace Commands
+
+### Development Scripts
+
+The root `package.json` defines workspace-level commands:
+
+```json package.json
+{
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\"",
+    "husky": "pnpm exec husky init"
+  }
+}
+```
+
+<Accordion title="Understanding Workspace Filters">
+  The `--filter` flag allows running commands in specific workspaces:
+  
+  - `pnpm --filter ./source/frontend dev` - Runs dev server for frontend only
+  - `pnpm --filter ./source/Server dev` - Runs dev server for backend only
+  - `concurrently` runs both simultaneously for full-stack development
+</Accordion>
+
+### Running Commands
+
+```bash
+# Start both frontend and backend concurrently
+pnpm dev
+
+# Install dependencies for all workspaces
+pnpm install
+
+# Build all packages
+pnpm -r build
+
+# Run tests across all workspaces
+pnpm -r test
+
+# Install dependency in specific workspace
+pnpm --filter frontend add axios
+pnpm --filter Server add express
+```
+
+## Automation Scripts
+
+TailStack includes cross-platform automation scripts for efficient monorepo management.
+
+### Smart Clean Script
+
+Removes all `node_modules` and lock files with parallel processing:
+
+<CodeGroup>
+```bash clean.sh (Linux/macOS)
+#!/bin/bash
+# High-velocity two-phase purge
+# - Phase 1: Parallel deletion of node_modules
+# - Phase 2: Forcefully kills locking processes
+# - 3-retry verification loop for stubborn files
+```
+
+```powershell clean.ps1 (Windows)
+# PowerShell equivalent with same features
+# - Parallel processing for faster deletion
+# - Kills Node.js and VS Code processes
+# - Retry mechanism for locked files
+```
+</CodeGroup>
+
+**Usage:**
+```bash
+# Linux/macOS
+./scripts/clean.sh
+
+# Windows
+.\scripts\clean.ps1
+```
+
+### Smart Install Script
+
+Parallel installer with intelligent load monitoring:
+
+**Features:**
+- Installs dependencies for all projects concurrently
+- Monitors CPU and RAM usage in real-time
+- Automatically suspends installation if system load exceeds 90%
+- Resumes when load drops below 75%
+- Prevents system hangs during heavy dependency resolution
+
+<Tip>
+  The load monitoring state machine ensures stable installation on any hardware, from laptops to CI servers.
+</Tip>
+
+**Usage:**
+```bash
+# Linux/macOS
+./scripts/install.sh
+
+# Windows
+.\scripts\install.ps1
+```
+
+## Package Management
+
+### Dependency Types
+
+TailStack uses different dependency types strategically:
+
+<Accordion title="Root Dependencies (Development Tools)">
+  Installed at the monorepo root for tooling that affects all packages:
+  
+  ```json
+  {
+    "devDependencies": {
+      "@commitlint/cli": "^20.3.1",
+      "@commitlint/config-conventional": "^20.3.1",
+      "concurrently": "^9.2.1",
+      "gitleaks": "^1.0.0",
+      "husky": "^9.1.7",
+      "lint-staged": "^16.2.7",
+      "nodemon": "^3.1.11"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Frontend Dependencies">
+  React ecosystem packages installed in `source/frontend/`:
+  
+  - **React 19**: Latest version with improved performance
+  - **Vite 7**: Next-generation build tool
+  - **Tailwind CSS 4**: Utility-first CSS framework
+  - **TypeScript 5.9**: Type safety
+</Accordion>
+
+<Accordion title="Backend Dependencies">
+  Node.js server packages installed in `source/Server/`:
+  
+  - **Express 5**: Web framework
+  - **TypeScript 5.9**: Type safety
+  - **Cookie Parser**: Cookie handling middleware
+  - **CORS**: Cross-origin resource sharing
+</Accordion>
+
+### Adding Dependencies
+
+```bash
+# Add to root (development tools)
+pnpm add -D -w eslint
+
+# Add to specific workspace
+pnpm --filter frontend add react-query
+pnpm --filter Server add prisma
+
+# Add to all workspaces
+pnpm -r add lodash
+```
+
+## Version Control
+
+### Git Hooks with Husky
+
+TailStack enforces code quality with pre-commit hooks:
+
+```json package.json
+{
+  "lint-staged": {
+    "*": [
+      "gitleaks protect --staged --redact"
+    ]
+  }
+}
+```
+
+<Info>
+  **Gitleaks** scans commits for secrets, API keys, and credentials before they reach version control.
+</Info>
+
+### Commitlint
+
+Enforces Conventional Commits format:
+
+```bash
+# Valid commit messages
+feat: add user authentication
+fix: resolve CORS issue in API
+docs: update installation guide
+refactor: reorganize service layer
+
+# Invalid commit messages (will be rejected)
+Added stuff
+fixed bug
+Update code
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Workspace Filters" icon="filter">
+    Always scope commands to specific workspaces to avoid unnecessary builds.
+  </Card>
+  <Card title="Leverage Smart Scripts" icon="wand-magic-sparkles">
+    Use the provided automation scripts for clean installs and maintenance.
+  </Card>
+  <Card title="Enforce Peer Dependencies" icon="shield-check">
+    Keep `strict-peer-dependencies=true` to catch version conflicts early.
+  </Card>
+  <Card title="Version Lock PNPM" icon="lock">
+    Use `packageManager` field to ensure consistent tooling across teams.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend Stack" icon="palette" href="/concepts/frontend-stack">
+    Learn about the React 19 + Vite 7 setup
+  </Card>
+  <Card title="Backend Stack" icon="server" href="/concepts/backend-stack">
+    Explore Express 5 and Node clustering
+  </Card>
+</CardGroup>

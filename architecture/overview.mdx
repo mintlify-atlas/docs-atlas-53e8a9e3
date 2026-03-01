@@ -1,0 +1,235 @@
+---
+title: Architecture Overview
+description: Understanding TailStack's production-grade monorepo architecture philosophy and choosing the right template for your project
+---
+
+## What is TailStack?
+
+TailStack is a production-grade **Project Architecture** framework designed to serve as a robust starting point for **ERN Stack** (Express, React, Node.js) applications. It implements the **TailStack Architecture**—a proven structure for full-stack development—providing a scalable, secure, and maintainable foundation.
+
+<Note>
+TailStack is **not a rigid framework**. It's designed to be fully customizable, whether you're building a startup MVP or a large-scale enterprise solution.
+</Note>
+
+## Architecture Philosophy
+
+The TailStack Architecture is built on several core principles:
+
+### 1. Monorepo-First Design
+TailStack embraces the monorepo pattern for full-stack applications, providing:
+- **Unified codebase**: Frontend and backend in a single repository
+- **Shared configurations**: TypeScript, ESLint, and tooling consistency
+- **Cross-platform automation**: Smart scripts for clean, install, and deployment
+- **Atomic commits**: Changes across frontend and backend in a single commit
+
+### 2. Production-Ready from Day One
+Every template includes:
+- **Security best practices**: CORS, environment variable management, and secret detection with Gitleaks
+- **Git workflow automation**: Husky hooks, commitlint for conventional commits
+- **Performance optimization**: Node clustering, Vite's lightning-fast HMR
+- **Type safety**: Full TypeScript coverage across the stack
+
+### 3. AI-Powered Development
+TailStack is supercharged with pre-configured **Agent Skills** for AI-driven development:
+
+<CardGroup cols={3}>
+  <Card title="Vercel React Best Practices" icon="react">
+    57 rules across 8 categories for React/Next.js optimization, maintained by Vercel
+  </Card>
+  <Card title="Node.js Backend Patterns" icon="node">
+    Comprehensive guidance for building scalable, production-ready Node.js applications
+  </Card>
+  <Card title="Tailwind v4 + shadcn/ui" icon="palette">
+    AI agents that understand shadcn/ui components and Tailwind CSS v4 engine
+  </Card>
+</CardGroup>
+
+<Note>
+Agent Skills are located in `.agent/`, `.claude/`, `.cursor/`, and `.opencode/` directories. Learn more at [skills.sh](https://skills.sh/docs)
+</Note>
+
+## The Three Templates
+
+TailStack provides three distinct architecture templates, each optimized for specific use cases:
+
+<Tabs>
+  <Tab title="Core Monorepo">
+    ### Full-Stack ERN Monorepo
+    
+    The **flagship template** featuring a complete Express + React + Node.js setup in a unified monorepo.
+    
+    **Best for:**
+    - Full-stack applications requiring tight frontend-backend integration
+    - Startups and MVPs that need rapid development
+    - Complex projects with shared business logic
+    - Teams wanting a unified codebase and deployment pipeline
+    
+    **Key Features:**
+    - Concurrent development with `pnpm dev`
+    - Pre-configured inter-service communication
+    - Weather app demo showcasing full-stack integration
+    - Node cluster for maximum backend performance
+    - All three agent skills included
+    
+    **Package Location:** `packages/core/`
+    
+    **Project Structure:**
+    ```
+    core/
+    ├── source/
+    │   ├── frontend/    # Vite + React client
+    │   └── Server/      # Express + TypeScript backend
+    ├── scripts/         # Automation utilities
+    └── .agent/          # AI agent skills
+    ```
+  </Tab>
+  
+  <Tab title="React Template">
+    ### Frontend-Only Architecture
+    
+    A focused **Vite + React** setup with premium UI components and modern routing.
+    
+    **Best for:**
+    - Client-side applications and SPAs
+    - Dashboards and admin panels
+    - Landing pages and marketing sites
+    - Projects consuming external APIs
+    - Frontend teams working independently
+    
+    **Key Features:**
+    - Vite 6 with lightning-fast HMR
+    - React 19 with latest features
+    - Tailwind CSS 4 with new engine
+    - Shadcn UI components pre-configured
+    - React Router 7 for routing
+    - Weather app demo (client-only version)
+    
+    **Package Location:** `packages/react/`
+    
+    **Project Structure:**
+    ```
+    react/
+    ├── src/
+    │   ├── components/  # UI components
+    │   ├── pages/       # Application pages
+    │   └── App.tsx      # Root component
+    └── .agent/          # Frontend-focused skills
+    ```
+  </Tab>
+  
+  <Tab title="Node Template">
+    ### Backend-Only Architecture
+    
+    A robust **Express + TypeScript** foundation optimized for APIs and microservices.
+    
+    **Best for:**
+    - REST APIs and GraphQL servers
+    - Microservices architecture
+    - Backend-only utilities and workers
+    - Teams building headless services
+    - Projects with separate frontend codebases
+    
+    **Key Features:**
+    - Express 5 with TypeScript
+    - Node cluster for multi-core utilization
+    - Security-first configuration (CORS, cookies)
+    - TSX for fast development iteration
+    - Clean separation of concerns
+    
+    **Package Location:** `packages/node/`
+    
+    **Project Structure:**
+    ```
+    node/
+    ├── src/
+    │   ├── cluster/     # Clustering logic
+    │   ├── routes/      # API routes
+    │   └── server.ts    # Entry point
+    └── .agent/          # Backend-focused skills
+    ```
+  </Tab>
+</Tabs>
+
+## Comparison Matrix
+
+| Feature | Core Monorepo | React Template | Node Template |
+|---------|---------------|----------------|---------------|
+| **Frontend** | Vite + React 19 | Vite + React 19 | — |
+| **Backend** | Express 5 + TS | — | Express 5 + TS |
+| **UI System** | Tailwind 4 + Shadcn | Tailwind 4 + Shadcn | — |
+| **Routing** | React Router 7 | React Router 7 | Express Router |
+| **Clustering** | ✅ | — | ✅ |
+| **Weather Demo** | ✅ Full-stack | ✅ Frontend-only | — |
+| **Agent Skills** | 3 skills | 2 skills | 1 skill |
+| **Dev Command** | `pnpm dev` (both) | `pnpm dev` | `pnpm dev` |
+| **Best For** | Full-stack apps | SPAs/Dashboards | APIs/Services |
+
+## Automation Scripts
+
+All templates include cross-platform automation scripts (both PowerShell and Bash):
+
+<CardGroup cols={2}>
+  <Card title="Smart Clean" icon="broom">
+    **`clean.ps1` / `clean.sh`**
+    
+    High-velocity two-phase purge:
+    - Parallel processing for faster deletion
+    - Kills locking processes (Node, VS Code)
+    - 3-retry verification loop for stubborn files
+    - Removes all `node_modules` and lock files
+  </Card>
+  
+  <Card title="Smart Install" icon="download">
+    **`install.ps1` / `install.sh`**
+    
+    Intelligent parallel installer:
+    - Concurrent dependency installation
+    - CPU/RAM load monitoring (90% threshold)
+    - Auto-suspend/resume state machine
+    - Prevents system crashes during heavy operations
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+Choose your template and scaffold a new project:
+
+<CodeGroup>
+```bash Core Monorepo
+npx degit GitCoder052023/TailStack/packages/core my-awesome-app
+cd my-awesome-app
+pnpm install
+pnpm dev
+```
+
+```bash React Template
+npx degit GitCoder052023/TailStack/packages/react my-react-app
+cd my-react-app
+pnpm install
+pnpm dev
+```
+
+```bash Node Template
+npx degit GitCoder052023/TailStack/packages/node my-api
+cd my-api
+pnpm install
+pnpm dev
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Monorepo Deep Dive" icon="layer-group" href="/architecture/core-monorepo">
+    Explore the full-stack ERN monorepo architecture
+  </Card>
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Understand the directory organization and file layout
+  </Card>
+  <Card title="React Template" icon="react" href="/architecture/react-template">
+    Learn about the frontend-only architecture
+  </Card>
+  <Card title="Node Template" icon="node" href="/architecture/node-template">
+    Discover the backend-only architecture
+  </Card>
+</CardGroup>

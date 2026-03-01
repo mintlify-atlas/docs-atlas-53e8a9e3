@@ -1,0 +1,398 @@
+---
+title: 'Middleware'
+description: 'Express middleware configuration including CORS, security, and custom middleware in TailStack'
+---
+
+## Overview
+
+Middleware functions in Express are functions that have access to the request object (`req`), response object (`res`), and the next middleware function in the application's request-response cycle.
+
+TailStack comes pre-configured with essential middleware for production-ready applications.
+
+## Built-in Middleware Stack
+
+The middleware stack is configured in `app.ts`:
+
+```typescript title="packages/core/source/Server/src/app.ts"
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middlewares/cors';
+import routes from './routes';
+
+const app = express();
+
+// Middlewares
+app.use(corsMiddleware);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use('/api', routes);
+```
+
+### Middleware Execution Order
+
+<Steps>
+  <Step title="CORS Middleware">
+    Handles cross-origin requests, must run first to set headers before other processing
+  </Step>
+  
+  <Step title="JSON Parser">
+    Parses incoming JSON request bodies (Content-Type: application/json)
+  </Step>
+  
+  <Step title="URL-Encoded Parser">
+    Parses URL-encoded bodies from forms (Content-Type: application/x-www-form-urlencoded)
+  </Step>
+  
+  <Step title="Cookie Parser">
+    Parses Cookie header and populates req.cookies
+  </Step>
+  
+  <Step title="Routes">
+    Application routes are processed after all middleware
+  </Step>
+</Steps>
+
+<Warning>
+  Middleware order matters! Always place CORS middleware first and route handlers last.
+</Warning>
+
+## CORS Middleware
+
+TailStack includes a custom CORS middleware:
+
+```typescript title="packages/core/source/Server/src/middlewares/cors.ts"
+import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
+
+export const corsMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  res.header('Access-Control-Allow-Origin', config.corsOrigin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+};
+```
+
+### CORS Configuration
+
+The CORS middleware:
+
+- Allows requests from the origin specified in `CORS_ORIGIN` environment variable
+- Supports GET, POST, PUT, DELETE, and OPTIONS methods
+- Allows common headers including Authorization for authentication
+- Handles preflight OPTIONS requests automatically
+
+### CORS Constants
+
+CORS configuration is centralized in constants:
+
+```typescript title="packages/node/src/constant/cors.ts"
+export const CORS_METHODS = 'GET, POST, PUT, DELETE, OPTIONS';
+export const CORS_HEADERS = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+```
+
+### Configure CORS Origin
+
+Set the allowed origin in your environment variables:
+
+```bash title=".env"
+# Development
+CORS_ORIGIN=http://localhost:5173
+
+# Production
+CORS_ORIGIN=https://yourdomain.com
+```
+
+<Tip>
+  For multiple origins, consider using the [cors](https://www.npmjs.com/package/cors) npm package which supports origin arrays and dynamic origin validation.
+</Tip>
+
+## Body Parser Middleware
+
+### JSON Parser
+
+```typescript
+app.use(express.json());
+```
+
+Parses JSON payloads and makes them available in `req.body`:
+
+```typescript
+// POST /api/users
+// Body: {"name": "John", "email": "john@example.com"}
+
+const { name, email } = req.body;
+```
+
+### URL-Encoded Parser
+
+```typescript
+app.use(express.urlencoded({ extended: true }));
+```
+
+Parses URL-encoded form data:
+
+```typescript
+// POST /api/users
+// Content-Type: application/x-www-form-urlencoded
+// Body: name=John&email=john@example.com
+
+const { name, email } = req.body;
+```
+
+The `extended: true` option allows parsing rich objects and arrays using the [qs](https://www.npmjs.com/package/qs) library.
+
+## Cookie Parser Middleware
+
+```typescript
+app.use(cookieParser());
+```
+
+Parses cookies from the `Cookie` header:
+
+```typescript
+// Access cookies
+const sessionId = req.cookies.sessionId;
+
+// Set cookies
+res.cookie('sessionId', '123456', {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+});
+```
+
+## Creating Custom Middleware
+
+Create custom middleware for cross-cutting concerns:
+
+### Authentication Middleware
+
+```typescript title="src/middlewares/auth.ts"
+import { Request, Response, NextFunction } from 'express';
+
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized', message: 'No token provided' });
+      return;
+    }
+    
+    // Verify token (implement your own logic)
+    const user = await verifyToken(token);
+    req.user = user;
+    
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Unauthorized', message: 'Invalid token' });
+  }
+};
+```
+
+### Request Logging Middleware
+
+```typescript title="src/middlewares/logger.ts"
+import { Request, Response, NextFunction } from 'express';
+
+export const loggerMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
+  });
+  
+  next();
+};
+```
+
+### Rate Limiting Middleware
+
+```typescript title="src/middlewares/rateLimit.ts"
+import rateLimit from 'express-rate-limit';
+
+export const rateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+```
+
+## Applying Middleware
+
+### Global Middleware
+
+Apply to all routes:
+
+```typescript title="src/app.ts"
+import { loggerMiddleware } from './middlewares/logger';
+
+app.use(loggerMiddleware);
+```
+
+### Route-Specific Middleware
+
+Apply to specific routes:
+
+```typescript title="src/routes/users.routes.ts"
+import { Router } from 'express';
+import { authMiddleware } from '../middlewares/auth';
+import { UserController } from '../controller/user.controller';
+
+const router = Router();
+
+// Public route
+router.post('/login', UserController.login);
+
+// Protected routes
+router.get('/profile', authMiddleware, UserController.getProfile);
+router.put('/profile', authMiddleware, UserController.updateProfile);
+
+export default router;
+```
+
+### Multiple Middleware
+
+Chain multiple middleware functions:
+
+```typescript
+router.post(
+  '/users',
+  authMiddleware,
+  validateUser,
+  checkPermissions,
+  UserController.createUser
+);
+```
+
+## Error Handling Middleware
+
+Error-handling middleware has four arguments:
+
+```typescript title="src/middlewares/errorHandler.ts"
+import { Request, Response, NextFunction } from 'express';
+
+export const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  console.error('Error:', err);
+  
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Something went wrong' 
+      : err.message,
+  });
+};
+```
+
+Register error handlers last:
+
+```typescript title="src/app.ts"
+import { errorHandler } from './middlewares/errorHandler';
+
+// Routes
+app.use('/api', routes);
+
+// Error handler (must be last)
+app.use(errorHandler);
+```
+
+## Security Middleware
+
+For production applications, consider adding:
+
+### Helmet
+
+Sets security-related HTTP headers:
+
+```typescript
+import helmet from 'helmet';
+
+app.use(helmet());
+```
+
+### Express Rate Limit
+
+Prevents abuse:
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use('/api', limiter);
+```
+
+### Compression
+
+Compresses response bodies:
+
+```typescript
+import compression from 'compression';
+
+app.use(compression());
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Order matters">
+    Middleware executes in the order it's registered. Place CORS first, error handlers last.
+  </Accordion>
+  
+  <Accordion title="Always call next()">
+    Don't forget to call `next()` to pass control to the next middleware, unless you're ending the request.
+  </Accordion>
+  
+  <Accordion title="Handle errors properly">
+    Pass errors to `next(error)` to trigger error-handling middleware.
+  </Accordion>
+  
+  <Accordion title="Use async/await carefully">
+    Wrap async middleware in try/catch blocks to handle promise rejections.
+  </Accordion>
+  
+  <Accordion title="Keep middleware focused">
+    Each middleware should do one thing well (Single Responsibility Principle).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Routing" icon="route" href="/backend/routing">
+    Learn how to apply middleware to specific routes
+  </Card>
+  <Card title="Configuration" icon="gear" href="/backend/configuration">
+    Configure CORS origins and other middleware settings
+  </Card>
+  <Card title="Server Setup" icon="server" href="/backend/server-setup">
+    See how middleware is integrated into the app
+  </Card>
+</CardGroup>

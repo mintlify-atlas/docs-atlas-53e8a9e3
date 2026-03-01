@@ -1,0 +1,384 @@
+---
+title: 'Components'
+description: 'Shadcn UI components, component structure, and creating custom components in TailStack'
+---
+
+## Overview
+
+TailStack uses **shadcn/ui** components built on top of Radix UI primitives. Components are modular, accessible, and fully customizable using Tailwind CSS utility classes.
+
+## Component Structure
+
+All UI components follow a consistent pattern:
+
+<Tabs items={['Button', 'Card', 'Input']}>
+  <Tab value="Button">
+    ```tsx packages/core/source/frontend/src/components/ui/button.tsx
+    import * as React from "react"
+    import { cn } from "@/lib/utils"
+    import { buttonVariants } from "@/constants/ui-variants"
+    import type { ButtonProps } from "@/types/ui"
+
+    const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+      ({ className, variant, size, asChild, children, ...props }, ref) => {
+        if (asChild && React.isValidElement(children)) {
+          return React.cloneElement(children as React.ReactElement<{ className?: string; ref?: React.Ref<HTMLButtonElement> }>, {
+            className: cn(buttonVariants({ variant, size, className })),
+            ref,
+            ...props,
+          })
+        }
+
+        return (
+          <button
+            className={cn(buttonVariants({ variant, size, className }))}
+            ref={ref}
+            {...props}
+          >
+            {children}
+          </button>
+        )
+      }
+    )
+    Button.displayName = "Button"
+
+    export { Button, buttonVariants }
+    ```
+  </Tab>
+  
+  <Tab value="Card">
+    ```tsx packages/core/source/frontend/src/components/ui/card.tsx
+    import * as React from "react"
+    import { cn } from "@/lib/utils"
+
+    const Card = React.forwardRef<
+      HTMLDivElement,
+      React.HTMLAttributes<HTMLDivElement>
+    >(({ className, ...props }, ref) => (
+      <div
+        ref={ref}
+        className={cn(
+          "rounded-lg border bg-card text-card-foreground shadow-sm",
+          className
+        )}
+        {...props}
+      />
+    ))
+    Card.displayName = "Card"
+
+    const CardHeader = React.forwardRef<
+      HTMLDivElement,
+      React.HTMLAttributes<HTMLDivElement>
+    >(({ className, ...props }, ref) => (
+      <div
+        ref={ref}
+        className={cn("flex flex-col space-y-1.5 p-6", className)}
+        {...props}
+      />
+    ))
+    CardHeader.displayName = "CardHeader"
+
+    const CardTitle = React.forwardRef<
+      HTMLDivElement,
+      React.HTMLAttributes<HTMLDivElement>
+    >(({ className, ...props }, ref) => (
+      <div
+        ref={ref}
+        className={cn("font-semibold leading-none tracking-tight", className)}
+        {...props}
+      />
+    ))
+    CardTitle.displayName = "CardTitle"
+
+    const CardDescription = React.forwardRef<
+      HTMLDivElement,
+      React.HTMLAttributes<HTMLDivElement>
+    >(({ className, ...props }, ref) => (
+      <div
+        ref={ref}
+        className={cn("text-sm text-muted-foreground", className)}
+        {...props}
+      />
+    ))
+    CardDescription.displayName = "CardDescription"
+
+    const CardContent = React.forwardRef<
+      HTMLDivElement,
+      React.HTMLAttributes<HTMLDivElement>
+    >(({ className, ...props }, ref) => (
+      <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+    ))
+    CardContent.displayName = "CardContent"
+
+    export { Card, CardHeader, CardTitle, CardDescription, CardContent }
+    ```
+  </Tab>
+  
+  <Tab value="Input">
+    ```tsx packages/core/source/frontend/src/components/ui/input.tsx
+    import * as React from "react"
+    import { cn } from "@/lib/utils"
+    import type { InputProps } from "@/types/ui"
+
+    const Input = React.forwardRef<HTMLInputElement, InputProps>(
+      ({ className, type, ...props }, ref) => {
+        return (
+          <input
+            type={type}
+            className={cn(
+              "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+              className
+            )}
+            ref={ref}
+            {...props}
+          />
+        )
+      }
+    )
+    Input.displayName = "Input"
+
+    export { Input }
+    ```
+  </Tab>
+</Tabs>
+
+## Component Variants
+
+TailStack uses **class-variance-authority (CVA)** to manage component variants:
+
+```ts packages/core/source/frontend/src/constants/ui-variants.ts
+import { cva } from "class-variance-authority"
+
+export const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 ring-offset-background",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-primary text-primary-foreground shadow hover:bg-primary/90 active:scale-[0.98]",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-6",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+```
+
+<Info>
+Variants are defined centrally in `constants/ui-variants.ts` for consistency across the application.
+</Info>
+
+## Available Components
+
+TailStack includes the following pre-built shadcn/ui components:
+
+- **Button** - Interactive buttons with multiple variants
+- **Card** - Container component with header, content, and footer
+- **Input** - Form input with validation states
+- **Badge** - Status indicators and labels
+- **Sheet** - Slide-out panel for mobile navigation
+- **Select** - Dropdown selection component
+- **Separator** - Visual divider element
+- **Scroll Area** - Custom scrollable container
+- **Code Block** - Syntax-highlighted code display
+
+## Layout Components
+
+TailStack includes layout components for consistent page structure:
+
+### Main Layout
+
+```tsx packages/core/source/frontend/src/components/layout/main-layout.tsx
+import { Navbar } from './navbar';
+import type { MainLayoutProps } from '@/types/layout';
+
+export function MainLayout({ children }: MainLayoutProps) {
+  return (
+    <div className="relative flex min-h-screen flex-col bg-background">
+      <Navbar />
+      <main className="flex-1">{children}</main>
+    </div>
+  );
+}
+```
+
+### Navbar Component
+
+The Navbar component includes responsive navigation, theme toggle, and mobile menu:
+
+```tsx packages/core/source/frontend/src/components/layout/navbar.tsx
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu, Github } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useNavigation } from '@/hooks/use-navigation';
+import { useToggle } from '@/hooks/use-toggle';
+import { navItems } from '@/constants/Navigation';
+
+export function Navbar() {
+  const { isActive } = useNavigation();
+  const [mobileMenuOpen, , setMobileMenuOpen] = useToggle(false);
+
+  return (
+    <header className="sticky flex top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex ml-5 mr-5 h-14 max-w-screen-2xl items-center">
+        {/* Desktop Navigation */}
+        <div className="mr-4 hidden md:flex">
+          <Link to="/" className="mr-6 flex items-center space-x-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <span className="text-sm font-bold">T</span>
+            </div>
+            <span className="hidden font-bold sm:inline-block">
+              TailStack
+            </span>
+          </Link>
+          <nav className="flex items-center gap-4 text-sm lg:gap-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "transition-colors hover:text-foreground/80",
+                  isActive(item.path, item.path !== '/docs')
+                    ? "text-foreground font-medium"
+                    : "text-foreground/60"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {/* Mobile Menu */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger className="md:hidden">
+            <Menu className="h-5 w-5" />
+          </SheetTrigger>
+          <SheetContent side="left">
+            {/* Mobile navigation content */}
+          </SheetContent>
+        </Sheet>
+
+        {/* Right Actions */}
+        <div className="flex flex-1 items-center justify-end space-x-2">
+          <Button variant="ghost" size="icon" asChild>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+              <Github className="h-4 w-4" />
+            </a>
+          </Button>
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+  );
+}
+```
+
+## Creating Custom Components
+
+Follow this pattern when creating custom components:
+
+```tsx
+import * as React from "react"
+import { cn } from "@/lib/utils"
+
+interface CustomComponentProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "outlined"
+  size?: "sm" | "md" | "lg"
+}
+
+export const CustomComponent = React.forwardRef<
+  HTMLDivElement,
+  CustomComponentProps
+>(({ className, variant = "default", size = "md", ...props }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "base-classes",
+        variant === "outlined" && "border-2",
+        size === "sm" && "text-sm p-2",
+        size === "md" && "text-base p-4",
+        size === "lg" && "text-lg p-6",
+        className
+      )}
+      {...props}
+    />
+  )
+})
+CustomComponent.displayName = "CustomComponent"
+```
+
+<Tip>
+Always use `React.forwardRef` to allow parent components to access the underlying DOM element.
+</Tip>
+
+## The `cn` Utility
+
+The `cn` utility function merges Tailwind classes intelligently:
+
+```ts packages/core/source/frontend/src/lib/utils.ts
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+```
+
+This utility:
+- Combines multiple class names using `clsx`
+- Resolves conflicting Tailwind classes with `twMerge`
+- Handles conditional classes elegantly
+
+### Usage Example
+
+```tsx
+import { cn } from "@/lib/utils"
+
+<div className={cn(
+  "base-class",
+  isActive && "active-class",
+  variant === "primary" && "bg-primary",
+  className // Allow prop overrides
+)} />
+```
+
+## Component Best Practices
+
+1. **Use TypeScript** - Define interfaces for all component props
+2. **Export variants** - Make variant definitions reusable
+3. **Allow className overrides** - Always spread `className` prop last
+4. **Use forwardRef** - Enable ref forwarding for all components
+5. **Set displayName** - Helpful for debugging in React DevTools
+6. **Compose components** - Build complex components from simple primitives
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Styling" icon="paintbrush" href="/frontend/styling">
+    Learn about Tailwind CSS 4 configuration and custom styling
+  </Card>
+  <Card title="State Management" icon="database" href="/frontend/state-management">
+    Explore custom hooks and state management patterns
+  </Card>
+</CardGroup>

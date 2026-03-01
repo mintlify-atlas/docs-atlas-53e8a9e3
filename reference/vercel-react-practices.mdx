@@ -1,0 +1,236 @@
+---
+title: Vercel React Best Practices
+description: Production-tested React and Next.js performance patterns from Vercel Engineering
+---
+
+## Overview
+
+The **Vercel React Best Practices** agent skill provides comprehensive performance optimization guidelines for React and Next.js applications. This skill contains 57 rules across 8 categories, prioritized by impact from critical (eliminating waterfalls, reducing bundle size) to incremental improvements.
+
+<Info>
+  **Production Origin**: These patterns are maintained by Vercel Engineering and are battle-tested in production environments.
+</Info>
+
+## What This Skill Does
+
+The skill guides AI agents to write, review, and refactor React/Next.js code following performance best practices:
+
+- **Eliminates Waterfalls** - Parallelize async operations, defer awaits, use Suspense boundaries
+- **Optimizes Bundle Size** - Direct imports, dynamic imports, code splitting
+- **Improves Server-Side Performance** - React.cache(), LRU caching, minimal serialization
+- **Enhances Client-Side Fetching** - SWR deduplication, event listener optimization
+- **Reduces Re-renders** - Memoization, derived state, transitions
+- **Boosts Rendering Performance** - Content visibility, SVG optimization, hydration fixes
+- **Optimizes JavaScript** - Loop improvements, Set/Map usage, early returns
+- **Advanced Patterns** - useEffectEvent, stable callbacks, app initialization
+
+## Location in TailStack Packages
+
+The Vercel React Best Practices skill is available in multiple packages across the monorepo:
+
+### React Package
+```bash
+# Agent skill files
+packages/react/.agent/skills/vercel-react-best-practices/
+packages/react/.claude/skills/vercel-react-best-practices/
+packages/react/.cursor/skills/vercel-react-best-practices/
+packages/react/.opencode/skills/vercel-react-best-practices/
+```
+
+### Core Package
+```bash
+# Shared across the monorepo
+packages/core/.agent/skills/vercel-react-best-practices/
+packages/core/.claude/skills/vercel-react-best-practices/
+packages/core/.cursor/skills/vercel-react-best-practices/
+packages/core/.opencode/skills/vercel-react-best-practices/
+```
+
+## Skill Structure
+
+<Card title="Skill Contents" icon="folder">
+  Each skill directory contains:
+  
+  - **SKILL.md** - Skill metadata and quick reference guide
+  - **AGENTS.md** - Full compiled documentation with all rules
+  - **rules/** - Individual rule files (57 total) organized by category:
+    - `async-*.md` - Eliminating waterfalls (5 rules)
+    - `bundle-*.md` - Bundle size optimization (5 rules)
+    - `server-*.md` - Server-side performance (7 rules)
+    - `client-*.md` - Client-side data fetching (4 rules)
+    - `rerender-*.md` - Re-render optimization (12 rules)
+    - `rendering-*.md` - Rendering performance (9 rules)
+    - `js-*.md` - JavaScript performance (12 rules)
+    - `advanced-*.md` - Advanced patterns (3 rules)
+</Card>
+
+## Using with AI Agents
+
+### Claude Desktop & Claude.ai
+
+<Steps>
+  <Step title="Locate Skill Files">
+    Navigate to `packages/react/.claude/skills/vercel-react-best-practices/`
+  </Step>
+  
+  <Step title="Reference in Conversations">
+    Claude automatically loads skills from the `.claude/` directory when working in the project.
+  </Step>
+  
+  <Step title="Ask for Optimization">
+    Example: "Review this component and apply Vercel React best practices"
+  </Step>
+</Steps>
+
+### Cursor
+
+<Steps>
+  <Step title="Locate Skill Files">
+    Skills are in `packages/react/.cursor/skills/vercel-react-best-practices/`
+  </Step>
+  
+  <Step title="Use in Rules">
+    Add to `.cursorrules` file:
+    ```
+    When writing React code, follow patterns from .cursor/skills/vercel-react-best-practices/
+    ```
+  </Step>
+  
+  <Step title="Reference Specific Rules">
+    Example: "Apply the async-parallel pattern from vercel-react-best-practices"
+  </Step>
+</Steps>
+
+### OpenCode
+
+<Steps>
+  <Step title="Load the Skill">
+    Skills in `packages/react/.opencode/skills/vercel-react-best-practices/` are automatically available
+  </Step>
+  
+  <Step title="Request Optimizations">
+    Example: "Refactor this data fetching to eliminate waterfalls using Vercel best practices"
+  </Step>
+</Steps>
+
+### Generic AI Agents
+
+<Steps>
+  <Step title="Read AGENTS.md">
+    The complete guide is in `packages/react/.agent/skills/vercel-react-best-practices/AGENTS.md`
+  </Step>
+  
+  <Step title="Include in Context">
+    Provide the AGENTS.md file or specific rule files as context to your AI agent
+  </Step>
+</Steps>
+
+## Key Rule Categories
+
+### Critical Impact Rules
+
+<CardGroup cols={2}>
+  <Card title="Eliminating Waterfalls" icon="stopwatch">
+    **Impact: CRITICAL** - 2-10× improvement
+    
+    - `async-parallel` - Promise.all() for independent operations
+    - `async-dependencies` - better-all for partial dependencies
+    - `async-defer-await` - Move await into branches
+    - `async-api-routes` - Start promises early in API routes
+    - `async-suspense-boundaries` - Strategic Suspense boundaries
+  </Card>
+  
+  <Card title="Bundle Size" icon="box">
+    **Impact: CRITICAL** - Directly affects TTI and LCP
+    
+    - `bundle-barrel-imports` - Direct imports (200-800ms saved)
+    - `bundle-dynamic-imports` - Use next/dynamic
+    - `bundle-defer-third-party` - Load after hydration
+    - `bundle-conditional` - Load only when needed
+    - `bundle-preload` - Preload on hover/focus
+  </Card>
+</CardGroup>
+
+### High Impact Rules
+
+<Card title="Server-Side Performance" icon="server">
+  **Impact: HIGH** - Eliminates server waterfalls
+  
+  - `server-auth-actions` - Authenticate server actions
+  - `server-cache-react` - React.cache() for deduplication
+  - `server-cache-lru` - Cross-request caching
+  - `server-serialization` - Minimize data passed to client
+  - `server-parallel-fetching` - Parallel component fetches
+  - `server-dedup-props` - Avoid duplicate serialization
+  - `server-after-nonblocking` - Use after() for side effects
+</Card>
+
+## Example: Applying a Rule
+
+<CodeGroup>
+```tsx Incorrect - Sequential Fetching
+async function Page() {
+  const user = await fetchUser()
+  const posts = await fetchPosts()
+  const comments = await fetchComments()
+  
+  return <Dashboard user={user} posts={posts} comments={comments} />
+}
+```
+
+```tsx Correct - Parallel Fetching
+async function Page() {
+  const [user, posts, comments] = await Promise.all([
+    fetchUser(),
+    fetchPosts(),
+    fetchComments()
+  ])
+  
+  return <Dashboard user={user} posts={posts} comments={comments} />
+}
+```
+</CodeGroup>
+
+<Note>
+  **Performance Impact**: Changes from 3 sequential round trips to 1 parallel round trip - 3× faster on 100ms latency
+</Note>
+
+## When to Apply This Skill
+
+The skill should be referenced when:
+
+<CardGroup cols={2}>
+  <Card title="Writing New Code" icon="code">
+    - Creating React components
+    - Building Next.js pages
+    - Implementing data fetching
+    - Setting up API routes
+  </Card>
+  
+  <Card title="Code Review" icon="magnifying-glass">
+    - Reviewing for performance
+    - Refactoring existing code
+    - Optimizing bundle size
+    - Reducing load times
+  </Card>
+</CardGroup>
+
+## Official Documentation
+
+<Card title="Learn More" icon="book">
+  - **Skills.sh Skill Page**: [vercel-react-best-practices](https://skills.sh/skill/vercel-react-best-practices)
+  - **GitHub Source**: Complete rules and examples in the skill directory
+  - **Vercel Engineering**: Maintained by the Vercel team
+</Card>
+
+## Related Skills
+
+- [Tailwind v4 + Shadcn](/reference/tailwind-shadcn-skill) - For styling optimizations
+- [Node.js Backend Patterns](/reference/nodejs-patterns) - For API route best practices
+
+## Version Information
+
+- **Skill Version**: 1.0.0
+- **Author**: Vercel Engineering
+- **License**: MIT
+- **Last Updated**: January 2026

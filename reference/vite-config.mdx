@@ -1,0 +1,292 @@
+---
+title: 'Vite Configuration'
+description: 'Vite build configuration for TailStack React applications'
+---
+
+TailStack uses Vite as its frontend build tool, configured for optimal React development with Tailwind CSS v4 support.
+
+## Configuration File
+
+Location: `source/frontend/vite.config.ts`
+
+```typescript
+import path from "path"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig } from "vite"
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+})
+```
+
+## Configuration Options
+
+### Plugins
+
+TailStack configures two essential Vite plugins:
+
+<ParamField path="plugins" type="array">
+  Array of Vite plugins that extend build functionality
+</ParamField>
+
+#### React Plugin
+
+```typescript
+import react from "@vitejs/plugin-react"
+```
+
+<ParamField path="react()" type="function">
+  Official Vite plugin providing:
+  - **Fast Refresh** - Instant feedback during development without losing component state
+  - **JSX transformation** - Automatic React JSX runtime with React 19 support
+  - **Automatic JSX runtime** - No need to import React in component files
+  - **Development optimizations** - Enhanced error messages and debugging
+</ParamField>
+
+<Tip>
+The React plugin automatically uses the new JSX transform, so you don't need `import React from 'react'` in your component files.
+</Tip>
+
+#### Tailwind CSS Plugin
+
+```typescript
+import tailwindcss from "@tailwindcss/vite"
+```
+
+<ParamField path="tailwindcss()" type="function">
+  Official Tailwind CSS v4 Vite plugin providing:
+  - **Native CSS integration** - No PostCSS configuration required
+  - **Lightning-fast builds** - Optimized for Vite's architecture
+  - **CSS-first workflow** - Import Tailwind directly in your CSS
+  - **Hot module replacement** - Instant style updates during development
+</ParamField>
+
+<Note>
+TailStack uses Tailwind CSS v4, which has a completely different architecture than v3. The Vite plugin handles all processing without PostCSS.
+</Note>
+
+### Module Resolution
+
+<ParamField path="resolve.alias" type="object">
+  Configure module path aliases for cleaner imports
+</ParamField>
+
+#### Path Aliases
+
+```typescript
+resolve: {
+  alias: {
+    "@": path.resolve(__dirname, "./src"),
+  },
+}
+```
+
+The `@` alias maps to the `src/` directory:
+
+```typescript
+// Instead of:
+import { Button } from '../../../components/ui/button';
+
+// Use:
+import { Button } from '@/components/ui/button';
+```
+
+<Warning>
+The `@` alias must be configured in both `vite.config.ts` AND `tsconfig.json` for proper IDE support and runtime resolution.
+</Warning>
+
+## Default Vite Behavior
+
+TailStack leverages Vite's sensible defaults:
+
+### Development Server
+
+<ParamField path="server.port" type="number" default={5173}>
+  Development server port (Vite default)
+</ParamField>
+
+<ParamField path="server.host" type="string" default="localhost">
+  Development server host
+</ParamField>
+
+<ParamField path="server.strictPort" type="boolean" default={false}>
+  Exit if port is already in use (false = auto-increment)
+</ParamField>
+
+<ParamField path="server.open" type="boolean" default={false}>
+  Automatically open browser on server start
+</ParamField>
+
+### Build Configuration
+
+<ParamField path="build.outDir" type="string" default="dist">
+  Output directory for production build
+</ParamField>
+
+<ParamField path="build.sourcemap" type="boolean" default={false}>
+  Generate source maps for production
+</ParamField>
+
+<ParamField path="build.minify" type="string" default="esbuild">
+  Minification method (esbuild is fastest)
+</ParamField>
+
+<ParamField path="build.target" type="string" default="modules">
+  Browser compatibility target (modules = modern browsers with ES modules)
+</ParamField>
+
+## Environment Variables
+
+Vite exposes environment variables prefixed with `VITE_` to your client code:
+
+```typescript
+// .env
+VITE_API_URL=http://localhost:5000
+
+// Access in code:
+const apiUrl = import.meta.env.VITE_API_URL
+```
+
+<ParamField path="import.meta.env.MODE" type="string">
+  Current mode: `development`, `production`, or custom
+</ParamField>
+
+<ParamField path="import.meta.env.DEV" type="boolean">
+  Whether app is running in development mode
+</ParamField>
+
+<ParamField path="import.meta.env.PROD" type="boolean">
+  Whether app is running in production mode
+</ParamField>
+
+<ParamField path="import.meta.env.BASE_URL" type="string">
+  Base URL the app is being served from
+</ParamField>
+
+<Warning>
+Never prefix sensitive data with `VITE_` - it will be exposed to client-side code and included in the bundle.
+</Warning>
+
+## Common Customizations
+
+### Custom Port
+
+```typescript
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  // ... rest of config
+})
+```
+
+### Proxy API Requests
+
+```typescript
+export default defineConfig({
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
+  // ... rest of config
+})
+```
+
+### Additional Path Aliases
+
+```typescript
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@components": path.resolve(__dirname, "./src/components"),
+      "@lib": path.resolve(__dirname, "./src/lib"),
+      "@hooks": path.resolve(__dirname, "./src/hooks"),
+    },
+  },
+  // ... rest of config
+})
+```
+
+<Note>
+If you add custom aliases, remember to update `tsconfig.json` paths as well.
+</Note>
+
+### Enable Source Maps
+
+```typescript
+export default defineConfig({
+  build: {
+    sourcemap: true,
+  },
+  // ... rest of config
+})
+```
+
+## Vite Commands
+
+Commands available via npm scripts:
+
+```bash
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Preview production build
+pnpm preview
+```
+
+### Development Server Features
+
+- **Hot Module Replacement (HMR)** - Instant updates without full page reload
+- **Fast Cold Start** - Leverages native ESM for quick server startup
+- **Optimized Dependencies** - Pre-bundles dependencies with esbuild
+- **CSS Hot Reload** - Style changes reflect instantly
+
+### Production Build Features
+
+- **Code Splitting** - Automatic chunking for optimal loading
+- **Tree Shaking** - Removes unused code
+- **Asset Optimization** - Minification and compression
+- **Legacy Support** - Optional polyfills with @vitejs/plugin-legacy
+
+## TypeScript Integration
+
+Vite handles TypeScript files natively:
+
+- **`.ts` and `.tsx` files** - Automatically transpiled
+- **Type checking** - Delegated to `tsc` (Vite only transpiles)
+- **Fast transpilation** - Uses esbuild for lightning-fast builds
+
+<Note>
+Vite does NOT type-check your code during build. Run `tsc -b` separately or use `vite-plugin-checker` for type-checking during development.
+</Note>
+
+## Performance Tips
+
+1. **Keep dependencies optimizable** - Vite pre-bundles ESM dependencies
+2. **Use dynamic imports** - Code-split large components
+3. **Optimize images** - Use appropriate formats and sizes
+4. **Minimize plugin usage** - Only add plugins you actually need
+5. **Enable CSS code splitting** - Separate CSS for each route
+
+## Further Reading
+
+- [Vite Configuration Reference](https://vitejs.dev/config/)
+- [Vite Plugin API](https://vitejs.dev/guide/api-plugin.html)
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react)
+- [Tailwind CSS v4 + Vite](https://tailwindcss.com/docs/installation/vite)

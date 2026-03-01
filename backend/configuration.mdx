@@ -1,0 +1,298 @@
+---
+title: 'Configuration'
+description: 'Server configuration, environment variables, and config patterns in TailStack'
+---
+
+## Overview
+
+TailStack uses environment variables for configuration, following the [12-factor app](https://12factor.net/config) methodology. This approach keeps secrets out of your code and makes it easy to deploy across different environments.
+
+## Configuration Structure
+
+Configuration is centralized in the `config/` directory:
+
+```
+src/config/
+├── index.ts      # Main server configuration
+└── weather.ts    # Feature-specific configuration
+```
+
+## Main Configuration
+
+The main configuration file loads environment variables:
+
+```typescript title="packages/core/source/Server/src/config/index.ts"
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  port: process.env.PORT || 5000,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  workers: parseInt(process.env.WORKERS || '0', 10),
+};
+```
+
+### Configuration Values
+
+| Key | Environment Variable | Default | Description |
+|-----|---------------------|---------|-------------|
+| `port` | `PORT` | `5000` | Server port number |
+| `nodeEnv` | `NODE_ENV` | `development` | Environment mode |
+| `corsOrigin` | `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
+| `workers` | `WORKERS` | `0` (auto) | Number of cluster workers |
+
+<Note>
+  When `workers` is set to `0`, TailStack automatically uses all available CPU cores via `availableParallelism()`.
+</Note>
+
+## Environment Variables
+
+### Setting Up .env Files
+
+Create environment-specific `.env` files:
+
+<Tabs>
+  <Tab title=".env.development">
+    ```bash
+    NODE_ENV=development
+    PORT=5000
+    CORS_ORIGIN=http://localhost:5173
+    WORKERS=2
+    ```
+  </Tab>
+  
+  <Tab title=".env.production">
+    ```bash
+    NODE_ENV=production
+    PORT=5000
+    CORS_ORIGIN=https://yourdomain.com
+    # WORKERS not set - uses all CPU cores
+    ```
+  </Tab>
+  
+  <Tab title=".env.test">
+    ```bash
+    NODE_ENV=test
+    PORT=5001
+    CORS_ORIGIN=http://localhost:5173
+    WORKERS=1
+    ```
+  </Tab>
+</Tabs>
+
+### Loading Environment Variables
+
+The `dotenv` package loads variables from `.env` files:
+
+```typescript
+import dotenv from 'dotenv';
+
+dotenv.config(); // Loads .env by default
+
+// Or load a specific file
+dotenv.config({ path: '.env.production' });
+```
+
+<Warning>
+  Never commit `.env` files to version control. Add them to `.gitignore` to prevent exposing secrets.
+</Warning>
+
+## Feature-Specific Configuration
+
+Separate configuration concerns by feature:
+
+```typescript title="packages/core/source/Server/src/config/weather.ts"
+export const WEATHER_CONFIG = {
+  BASE_URL: 'https://wttr.in',
+};
+```
+
+This pattern:
+
+- Keeps related configuration together
+- Makes it easy to find and update settings
+- Allows importing only what you need
+
+### Using Feature Config
+
+```typescript title="src/services/weather.service.ts"
+import { WEATHER_CONFIG } from '../config/weather';
+
+const response = await axios.get(
+  `${WEATHER_CONFIG.BASE_URL}/${location}`
+);
+```
+
+## Configuration Constants
+
+For values that don't change between environments, use constants:
+
+```typescript title="packages/node/src/constant/config.ts"
+export const DEFAULT_PORT = 5000;
+export const DEFAULT_NODE_ENV = 'development';
+export const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
+```
+
+These provide:
+
+- Type safety
+- Autocomplete in your IDE
+- Single source of truth for default values
+
+## Validation
+
+Validate configuration at startup to fail fast:
+
+```typescript title="src/config/index.ts"
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = ['PORT', 'CORS_ORIGIN'];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
+
+export const config = {
+  port: parseInt(process.env.PORT!, 10),
+  nodeEnv: process.env.NODE_ENV || 'development',
+  corsOrigin: process.env.CORS_ORIGIN!,
+  workers: parseInt(process.env.WORKERS || '0', 10),
+};
+```
+
+## Type-Safe Configuration
+
+For better type safety, create a configuration schema:
+
+```typescript title="src/config/schema.ts"
+interface Config {
+  port: number;
+  nodeEnv: 'development' | 'production' | 'test';
+  corsOrigin: string;
+  workers: number;
+  database?: {
+    host: string;
+    port: number;
+    name: string;
+  };
+}
+
+export const config: Config = {
+  port: parseInt(process.env.PORT || '5000', 10),
+  nodeEnv: (process.env.NODE_ENV as Config['nodeEnv']) || 'development',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  workers: parseInt(process.env.WORKERS || '0', 10),
+};
+```
+
+## Configuration Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use environment variables for secrets">
+    Never hardcode API keys, database passwords, or other secrets. Use environment variables and keep them out of version control.
+  </Accordion>
+  
+  <Accordion title="Provide sensible defaults">
+    Use the `||` operator to provide default values for non-critical configuration.
+  </Accordion>
+  
+  <Accordion title="Validate early">
+    Validate required configuration at application startup to catch issues before they cause problems in production.
+  </Accordion>
+  
+  <Accordion title="Separate by environment">
+    Use different `.env` files for development, staging, and production environments.
+  </Accordion>
+  
+  <Accordion title="Document your config">
+    Provide a `.env.example` file showing all available configuration options with example values.
+  </Accordion>
+  
+  <Accordion title="Use type safety">
+    TypeScript interfaces help catch configuration errors at compile time.
+  </Accordion>
+</AccordionGroup>
+
+## Example .env.example
+
+Provide a template for your team:
+
+```bash title=".env.example"
+# Server Configuration
+NODE_ENV=development
+PORT=5000
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# Cluster Configuration
+# Set to 0 to use all CPU cores (recommended for production)
+# Set to a specific number for development/testing
+WORKERS=2
+
+# Database Configuration (example)
+# DATABASE_HOST=localhost
+# DATABASE_PORT=5432
+# DATABASE_NAME=myapp
+# DATABASE_USER=postgres
+# DATABASE_PASSWORD=secretpassword
+
+# API Keys (example)
+# WEATHER_API_KEY=your_api_key_here
+# STRIPE_SECRET_KEY=sk_test_...
+```
+
+## Environment-Specific Scripts
+
+Use different scripts for different environments:
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "NODE_ENV=development tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "NODE_ENV=production node dist/server.js",
+    "test": "NODE_ENV=test jest"
+  }
+}
+```
+
+## Accessing Configuration
+
+Import and use configuration throughout your app:
+
+```typescript
+import { config } from './config';
+
+// In server.ts
+app.listen(config.port, () => {
+  console.log(`Server running on port ${config.port}`);
+});
+
+// In middleware
+res.header('Access-Control-Allow-Origin', config.corsOrigin);
+
+// In cluster initialization
+const numCPUs = config.workers || availableParallelism();
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server Setup" icon="server" href="/backend/server-setup">
+    See how configuration is used during server initialization
+  </Card>
+  <Card title="Clustering" icon="layer-group" href="/backend/clustering">
+    Learn how the WORKERS configuration affects clustering
+  </Card>
+  <Card title="Middleware" icon="filter" href="/backend/middleware">
+    Understand how CORS_ORIGIN is used in CORS middleware
+  </Card>
+</CardGroup>

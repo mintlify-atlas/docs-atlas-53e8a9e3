@@ -1,0 +1,397 @@
+---
+title: Installation
+description: Detailed installation instructions for all three TailStack templates
+---
+
+# Installation
+
+TailStack is distributed as a set of standalone templates. You can scaffold a new project directly from GitHub using `degit` or `curl`, giving you a clean Git history to start from.
+
+## Prerequisites
+
+Before installing TailStack, ensure you have the following:
+
+- **Node.js** - Version 20.x or higher (specified in `.nvmrc` and `.node-version`)
+- **pnpm** - Version 10.12.1 or higher (TailStack's package manager)
+
+<Tip>
+  Using nvm? Simply run `nvm use` in your project directory to automatically switch to the correct Node.js version.
+</Tip>
+
+## Installation methods
+
+Choose your preferred installation method:
+
+### Method 1: Using degit (Recommended)
+
+`degit` is the recommended way to scaffold TailStack projects. It downloads the template without the entire Git history.
+
+<Steps>
+  <Step title="Install the template">
+    Run the appropriate command for your chosen template:
+
+    <Tabs>
+      <Tab title="Core (Monorepo)">
+        ```bash
+        npx degit GitCoder052023/TailStack/packages/core my-project
+        cd my-project
+        ```
+
+        **What you get:**
+        - Full-stack ERN architecture
+        - Express backend with Node clustering
+        - React frontend with Vite and Tailwind CSS 4
+        - Weather app demo
+        - Shared monorepo configuration
+        - Automation scripts (clean, install)
+      </Tab>
+
+      <Tab title="React (Frontend)">
+        ```bash
+        npx degit GitCoder052023/TailStack/packages/react my-react-app
+        cd my-react-app
+        ```
+
+        **What you get:**
+        - Vite 6 + React 19
+        - Tailwind CSS 4 with Shadcn UI
+        - React Router 7
+        - Lucide React icons
+        - Sonner toast notifications
+        - Agent Skills for React best practices
+      </Tab>
+
+      <Tab title="Node (Backend)">
+        ```bash
+        npx degit GitCoder052023/TailStack/packages/node my-api
+        cd my-api
+        ```
+
+        **What you get:**
+        - Express 5 + TypeScript
+        - Node clustering for multi-core utilization
+        - Pre-configured CORS and security
+        - Cookie parser and middleware setup
+        - Clean, scalable directory structure
+        - Agent Skills for Node.js patterns
+      </Tab>
+    </Tabs>
+
+    <Note>
+      You can scaffold into the current directory by using `.` as the project name:
+      ```bash
+      npx degit GitCoder052023/TailStack/packages/core .
+      ```
+    </Note>
+  </Step>
+
+  <Step title="Install dependencies">
+    Install project dependencies using pnpm:
+
+    ```bash
+    pnpm install
+    ```
+
+    **For Core template only**, you can use the intelligent install script:
+
+    <CodeGroup>
+    ```bash Linux/macOS
+    chmod +x scripts/install.sh
+    ./scripts/install.sh
+    ```
+
+    ```powershell Windows
+    .\scripts\install.ps1
+    ```
+    </CodeGroup>
+
+    **Smart Install Features:**
+    - Installs all workspace packages in parallel
+    - Monitors CPU and RAM usage in real-time
+    - Automatically suspends processes if load exceeds 90%
+    - Resumes when load drops below 75%
+    - Prevents system crashes during heavy dependency resolution
+  </Step>
+
+  <Step title="Configure environment (Backend templates only)">
+    For **Core** and **Node** templates, set up environment variables:
+
+    ```bash
+    # Core template
+    cp source/Server/.env.example source/Server/.env
+
+    # Node template
+    cp .env.example .env
+    ```
+
+    Edit the `.env` file with your configuration:
+
+    ```bash .env
+    PORT=5000
+    NODE_ENV=development
+    # Add your additional environment variables here
+    ```
+  </Step>
+
+  <Step title="Start development server">
+    Start your project:
+
+    <CodeGroup>
+    ```bash Core
+    pnpm dev
+
+    # Starts both frontend and backend concurrently:
+    # Frontend: http://localhost:5173
+    # Backend: http://localhost:5000
+    ```
+
+    ```bash React
+    pnpm dev
+
+    # Starts Vite dev server:
+    # http://localhost:5173
+    ```
+
+    ```bash Node
+    pnpm dev
+
+    # Starts Express server with tsx watch
+    ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+### Method 2: Using curl
+
+If you don't have Node.js installed or prefer a shell-native approach, use `curl` to download and extract the template:
+
+<CodeGroup>
+```bash Core
+curl -L https://github.com/GitCoder052023/TailStack/archive/refs/heads/main.tar.gz | tar -xz --strip-components=2 TailStack-main/packages/core
+cd core
+pnpm install
+```
+
+```bash React
+curl -L https://github.com/GitCoder052023/TailStack/archive/refs/heads/main.tar.gz | tar -xz --strip-components=2 TailStack-main/packages/react
+cd react
+pnpm install
+```
+
+```bash Node
+curl -L https://github.com/GitCoder052023/TailStack/archive/refs/heads/main.tar.gz | tar -xz --strip-components=2 TailStack-main/packages/node
+cd node
+pnpm install
+```
+</CodeGroup>
+
+<Warning>
+  The `curl` method requires `tar` to be available on your system. On Windows, use WSL or Git Bash.
+</Warning>
+
+### Method 3: Manual clone
+
+For contributors or those who want to explore all templates:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/GitCoder052023/TailStack.git
+    cd TailStack
+    ```
+  </Step>
+
+  <Step title="Navigate to your template">
+    ```bash
+    cd packages/core  # or packages/react or packages/node
+    ```
+  </Step>
+
+  <Step title="Install and run">
+    ```bash
+    pnpm install
+    pnpm dev
+    ```
+  </Step>
+</Steps>
+
+## Package scripts reference
+
+Each template comes with npm scripts for common tasks:
+
+### Core template
+
+```json package.json
+{
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\"",
+    "husky": "pnpm exec husky init"
+  }
+}
+```
+
+**Frontend workspace:**
+```json source/frontend/package.json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  }
+}
+```
+
+**Backend workspace:**
+```json source/Server/package.json
+{
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+}
+```
+
+### React template
+
+```json package.json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  }
+}
+```
+
+### Node template
+
+```json package.json
+{
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+}
+```
+
+## Automation scripts (Core template)
+
+The Core template includes powerful automation scripts in the `scripts/` directory:
+
+### Smart clean
+
+Removes all `node_modules` and lock files with parallel processing:
+
+<CodeGroup>
+```bash Linux/macOS
+./scripts/clean.sh
+```
+
+```powershell Windows
+.\scripts\clean.ps1
+```
+</CodeGroup>
+
+**Features:**
+- Two-phase parallel purge
+- Kills locking processes (Node, VS Code)
+- 3-retry verification loop for stubborn files
+- Force deletion with elevated permissions if needed
+
+### Smart install
+
+Parallel dependency installation with load monitoring:
+
+<CodeGroup>
+```bash Linux/macOS
+./scripts/install.sh
+```
+
+```powershell Windows
+.\scripts\install.ps1
+```
+</CodeGroup>
+
+**Features:**
+- Installs all workspace packages concurrently
+- Real-time CPU and RAM monitoring
+- Intelligent state machine for load management
+- Automatic pause/resume to prevent system hangs
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="pnpm: command not found">
+    Install pnpm globally:
+    ```bash
+    npm install -g pnpm
+    ```
+
+    Or use corepack (Node.js 16.13+):
+    ```bash
+    corepack enable
+    corepack prepare pnpm@10.12.1 --activate
+    ```
+  </Accordion>
+
+  <Accordion title="Node version mismatch">
+    TailStack requires Node.js 20.x or higher. If using nvm:
+    ```bash
+    nvm install 20
+    nvm use 20
+    ```
+
+    Or in the project directory:
+    ```bash
+    nvm use
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    If you see `EADDRINUSE` errors:
+
+    **For frontend (port 5173):**
+    ```bash
+    # Kill the process using the port
+    lsof -ti:5173 | xargs kill -9
+    ```
+
+    **For backend (port 5000):**
+    ```bash
+    lsof -ti:5000 | xargs kill -9
+    ```
+
+    Or change the port in your configuration files.
+  </Accordion>
+
+  <Accordion title="Permission denied on scripts">
+    Make scripts executable:
+    ```bash
+    chmod +x scripts/*.sh
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Follow the quick start guide to build your first feature
+  </Card>
+  
+  <Card title="Project structure" icon="folder-tree" href="/core/structure">
+    Understand the directory organization and file structure
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Configure environment variables, linting, and Git hooks
+  </Card>
+  
+  <Card title="Development" icon="code" href="/development">
+    Learn about the development workflow and best practices
+  </Card>
+</CardGroup>

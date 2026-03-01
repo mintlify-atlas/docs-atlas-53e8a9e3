@@ -1,0 +1,429 @@
+---
+title: 'Styling'
+description: 'Tailwind CSS 4 configuration, utility classes, and custom styling patterns in TailStack'
+---
+
+## Overview
+
+TailStack uses **Tailwind CSS v4** with the new `@import "tailwindcss"` syntax and `@theme inline` directive for advanced theming capabilities.
+
+## Tailwind CSS 4 Configuration
+
+The main stylesheet uses Tailwind v4's new CSS-first configuration:
+
+```css packages/core/source/frontend/src/index.css
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+```
+
+<Info>
+Tailwind v4 uses the new `@theme inline` directive to map CSS variables to Tailwind utilities without a `tailwind.config.js` file.
+</Info>
+
+## Color System
+
+TailStack uses OKLCH color space for better color perception:
+
+### Light Mode Colors
+
+```css packages/core/source/frontend/src/index.css {47-80}
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+```
+
+### Dark Mode Colors
+
+```css packages/core/source/frontend/src/index.css {82-114}
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+```
+
+<Tip>
+OKLCH provides better color interpolation and perceptual uniformity compared to HSL or RGB.
+</Tip>
+
+## Dark Mode Implementation
+
+TailStack uses a CSS class-based dark mode strategy:
+
+### Custom Dark Variant
+
+```css
+@custom-variant dark (&:is(.dark *));
+```
+
+This allows you to use the `dark:` prefix in Tailwind classes:
+
+```tsx
+<div className="bg-white dark:bg-gray-900 text-black dark:text-white">
+  Content adapts to theme
+</div>
+```
+
+### Theme Toggle Component
+
+```tsx packages/core/source/frontend/src/components/theme-toggle.tsx
+import { Moon, Sun } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/use-theme';
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-9 w-9"
+      onClick={toggleTheme}
+      aria-label="Toggle theme"
+    >
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
+  );
+}
+```
+
+### Theme Hook
+
+```ts packages/core/source/frontend/src/hooks/use-theme.ts
+import { useEffect, useState } from 'react';
+import type { Theme } from '@/types/theme';
+
+export function useTheme() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage first
+    const stored = localStorage.getItem('theme') as Theme | null;
+    if (stored) return stored;
+    
+    // Check system preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  return { theme, toggleTheme, setTheme };
+}
+```
+
+## Base Styles
+
+Global base styles are defined in the `@layer base`:
+
+```css packages/core/source/frontend/src/index.css {116-123}
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+```
+
+This ensures:
+- All elements use the theme's border color
+- Outline rings use the ring color with transparency
+- Body background and text adapt to theme
+
+## Utility Classes
+
+### Common Patterns
+
+<Tabs items={['Layout', 'Typography', 'Spacing', 'Colors']}>
+  <Tab value="Layout">
+    ```tsx
+    {/* Flexbox */}
+    <div className="flex items-center justify-between">
+      <span>Left</span>
+      <span>Right</span>
+    </div>
+
+    {/* Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>Item 1</div>
+      <div>Item 2</div>
+      <div>Item 3</div>
+    </div>
+
+    {/* Container */}
+    <div className="container mx-auto max-w-screen-2xl px-4">
+      Content
+    </div>
+    ```
+  </Tab>
+  
+  <Tab value="Typography">
+    ```tsx
+    {/* Headings */}
+    <h1 className="text-4xl font-bold tracking-tight">
+      Main Heading
+    </h1>
+
+    {/* Paragraph */}
+    <p className="text-muted-foreground leading-7">
+      Body text with subtle color
+    </p>
+
+    {/* Code */}
+    <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">
+      inline code
+    </code>
+    ```
+  </Tab>
+  
+  <Tab value="Spacing">
+    ```tsx
+    {/* Padding */}
+    <div className="p-4 md:p-6 lg:p-8">
+      Responsive padding
+    </div>
+
+    {/* Margin */}
+    <div className="mt-4 mb-8 mx-auto">
+      Vertical and horizontal margins
+    </div>
+
+    {/* Gap */}
+    <div className="flex gap-2 md:gap-4">
+      <span>Item 1</span>
+      <span>Item 2</span>
+    </div>
+    ```
+  </Tab>
+  
+  <Tab value="Colors">
+    ```tsx
+    {/* Semantic Colors */}
+    <div className="bg-primary text-primary-foreground">Primary</div>
+    <div className="bg-secondary text-secondary-foreground">Secondary</div>
+    <div className="bg-muted text-muted-foreground">Muted</div>
+    <div className="bg-destructive text-white">Destructive</div>
+
+    {/* Background & Text */}
+    <div className="bg-background text-foreground">Theme colors</div>
+
+    {/* Borders */}
+    <div className="border border-border rounded-lg">Bordered</div>
+    ```
+  </Tab>
+</Tabs>
+
+## Custom Utilities
+
+Extend Tailwind with custom utilities in your CSS:
+
+```css
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+```
+
+Use them like standard Tailwind classes:
+
+```tsx
+<h1 className="text-balance">Balanced text wrapping</h1>
+<div className="scrollbar-hide overflow-auto">Hidden scrollbar</div>
+```
+
+## Responsive Design
+
+Tailwind's responsive prefixes adapt to screen sizes:
+
+```tsx
+<div className="
+  w-full          // Full width on mobile
+  md:w-1/2        // Half width on tablets
+  lg:w-1/3        // Third width on desktop
+  p-4             // 1rem padding on mobile
+  md:p-6          // 1.5rem padding on tablets
+  lg:p-8          // 2rem padding on desktop
+">
+  Responsive container
+</div>
+```
+
+Breakpoint reference:
+- `sm:` - 640px and up
+- `md:` - 768px and up
+- `lg:` - 1024px and up
+- `xl:` - 1280px and up
+- `2xl:` - 1536px and up
+
+## Animation and Transitions
+
+TailStack includes `tw-animate-css` for animations:
+
+```tsx
+{/* Hover effects */}
+<button className="
+  transition-all duration-200
+  hover:scale-105
+  active:scale-95
+">
+  Interactive Button
+</button>
+
+{/* Dark mode transitions */}
+<div className="
+  bg-white dark:bg-gray-900
+  transition-colors duration-300
+">
+  Smooth theme transition
+</div>
+
+{/* Loading spinner */}
+<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+```
+
+## CSS Variables in Components
+
+Access theme variables directly in CSS:
+
+```css
+.custom-component {
+  background-color: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+```
+
+## Styling Best Practices
+
+1. **Use semantic color tokens** - Prefer `bg-primary` over `bg-blue-500`
+2. **Leverage the `cn` utility** - Merge classes intelligently
+3. **Follow responsive-first approach** - Start with mobile, add breakpoints
+4. **Use CSS variables** - Enable dynamic theming
+5. **Minimize custom CSS** - Maximize Tailwind utilities
+6. **Group related utilities** - Use consistent ordering (layout, spacing, typography, colors)
+7. **Extract repeated patterns** - Create component variants with CVA
+
+## Class Organization
+
+Follow this order for better readability:
+
+```tsx
+<div className="
+  // Layout
+  flex items-center justify-between
+  
+  // Spacing
+  p-4 gap-2
+  
+  // Sizing
+  w-full h-12
+  
+  // Typography
+  text-sm font-medium
+  
+  // Colors
+  bg-primary text-primary-foreground
+  
+  // Borders
+  border border-border rounded-lg
+  
+  // Effects
+  shadow-sm hover:shadow-md
+  transition-all duration-200
+">
+  Content
+</div>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="layer-group" href="/frontend/components">
+    Learn about shadcn UI components and styling patterns
+  </Card>
+  <Card title="State Management" icon="database" href="/frontend/state-management">
+    Explore custom hooks for theme and state management
+  </Card>
+</CardGroup>

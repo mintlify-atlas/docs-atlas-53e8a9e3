@@ -1,0 +1,326 @@
+---
+title: 'package.json Reference'
+description: 'Complete package.json structure and scripts across all TailStack packages'
+---
+
+TailStack uses a monorepo structure with separate `package.json` files for the root, template packages, and application packages. This reference documents all package configurations.
+
+## Root Package
+
+The root `package.json` manages monorepo-level dependencies and scripts.
+
+```json
+{
+  "name": "tailstack",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "gitleaks-verbose": "gitleaks detect --source . --verbose",
+    "husky": "pnpm exec husky init"
+  },
+  "lint-staged": {
+    "*": [
+      "gitleaks protect --staged --redact"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
+    "concurrently": "^9.2.1",
+    "gitleaks": "^1.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "nodemon": "^3.1.11"
+  }
+}
+```
+
+### Root Scripts
+
+<ParamField path="gitleaks-verbose" type="string">
+  Runs gitleaks to detect secrets in the codebase with verbose output
+</ParamField>
+
+<ParamField path="husky" type="string">
+  Initializes Husky git hooks for the repository
+</ParamField>
+
+### Root Dependencies
+
+<ParamField path="@commitlint/cli" type="string">
+  CLI for commitlint - enforces conventional commit messages
+</ParamField>
+
+<ParamField path="concurrently" type="string">
+  Run multiple commands concurrently (used for dev server orchestration)
+</ParamField>
+
+<ParamField path="gitleaks" type="string">
+  Secret detection tool to prevent committing sensitive data
+</ParamField>
+
+<ParamField path="husky" type="string">
+  Git hooks manager for running pre-commit and pre-push checks
+</ParamField>
+
+<ParamField path="lint-staged" type="string">
+  Run linters against staged git files only
+</ParamField>
+
+## Template Packages
+
+TailStack includes two template packages: `@tailstack/core` and `@tailstack/node`.
+
+### Core Template Package
+
+The Core template package root configuration:
+
+```json
+{
+  "name": "your-project-name",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter ./source/frontend dev\" \"pnpm --filter ./source/Server dev\"",
+    "husky": "pnpm exec husky init"
+  },
+  "lint-staged": {
+    "*": [
+      "gitleaks protect --staged --redact"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
+    "concurrently": "^9.2.1",
+    "gitleaks": "^1.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "nodemon": "^3.1.11"
+  }
+}
+```
+
+<ParamField path="dev" type="string">
+  Runs both frontend and backend in development mode concurrently using pnpm workspace filters
+</ParamField>
+
+## Server Package
+
+The backend server package configuration (identical in both Core and Node templates):
+
+```json
+{
+  "name": "Server",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/dotenv": "^8.2.3",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.10",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+### Server Scripts
+
+<ParamField path="dev" type="string">
+  Starts the server in watch mode using tsx for fast TypeScript execution
+</ParamField>
+
+<ParamField path="build" type="string">
+  Compiles TypeScript to JavaScript in the `dist/` directory
+</ParamField>
+
+<ParamField path="start" type="string">
+  Runs the compiled server from `dist/server.js` (production mode)
+</ParamField>
+
+### Server Dependencies
+
+<ParamField path="axios" type="string">
+  Promise-based HTTP client for making API requests
+</ParamField>
+
+<ParamField path="cookie-parser" type="string">
+  Parse Cookie header and populate req.cookies
+</ParamField>
+
+<ParamField path="cors" type="string">
+  Enable CORS with various options for cross-origin requests
+</ParamField>
+
+<ParamField path="dotenv" type="string">
+  Load environment variables from .env file
+</ParamField>
+
+<ParamField path="express" type="string">
+  Fast, unopinionated, minimalist web framework for Node.js (v5.2+)
+</ParamField>
+
+<ParamField path="tsx" type="string">
+  TypeScript execute - fast TS/ESM execution with watch mode
+</ParamField>
+
+## Frontend Package
+
+The React frontend package configuration:
+
+```json
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "axios": "^1.7.9",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.12.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}
+```
+
+### Frontend Scripts
+
+<ParamField path="dev" type="string">
+  Start Vite development server with hot module replacement
+</ParamField>
+
+<ParamField path="build" type="string">
+  Type-check with TypeScript and build production bundle with Vite
+</ParamField>
+
+<ParamField path="lint" type="string">
+  Run ESLint on the entire project
+</ParamField>
+
+<ParamField path="preview" type="string">
+  Preview the production build locally
+</ParamField>
+
+### Frontend Dependencies
+
+<ParamField path="@tailwindcss/vite" type="string">
+  Official Tailwind CSS v4 Vite plugin
+</ParamField>
+
+<ParamField path="class-variance-authority" type="string">
+  CVA - utility for creating variant-based component APIs
+</ParamField>
+
+<ParamField path="clsx" type="string">
+  Utility for constructing className strings conditionally
+</ParamField>
+
+<ParamField path="lucide-react" type="string">
+  Beautiful & consistent icon library based on Lucide
+</ParamField>
+
+<ParamField path="react" type="string">
+  React library v19 - UI component framework
+</ParamField>
+
+<ParamField path="react-router-dom" type="string">
+  Declarative routing for React applications (v7+)
+</ParamField>
+
+<ParamField path="sonner" type="string">
+  Opinionated toast component for React
+</ParamField>
+
+<ParamField path="tailwind-merge" type="string">
+  Merge Tailwind CSS classes without style conflicts
+</ParamField>
+
+<ParamField path="@vitejs/plugin-react" type="string">
+  Official Vite plugin for React with Fast Refresh
+</ParamField>
+
+<ParamField path="tw-animate-css" type="string">
+  Tailwind CSS animation utilities
+</ParamField>
+
+## Package Manager
+
+All TailStack packages use **pnpm 10.12.1** as specified in the `packageManager` field. This ensures consistent dependency resolution and enables workspace features.
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run scripts in specific workspace
+pnpm --filter ./source/frontend dev
+pnpm --filter ./source/Server build
+
+# Run scripts from root
+pnpm dev
+```
+
+## Workspace Structure
+
+TailStack's monorepo structure:
+
+```
+tailstack/
+├── package.json (root)
+└── packages/
+    ├── core/
+    │   ├── package.json (template root)
+    │   └── source/
+    │       ├── frontend/
+    │       │   └── package.json
+    │       └── Server/
+    │           └── package.json
+    ├── node/
+    │   ├── package.json (template root)
+    │   └── ... (similar structure)
+    └── react/
+        └── package.json
+```

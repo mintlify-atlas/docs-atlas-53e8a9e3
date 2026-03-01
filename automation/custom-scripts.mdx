@@ -1,0 +1,960 @@
+---
+title: 'Custom Scripts'
+description: 'Guide to creating custom automation scripts for your TailStack monorepo'
+---
+
+## Overview
+
+TailStack's automation framework provides powerful patterns for building custom scripts. By studying the included `clean` and `install` scripts, you can create your own automation tools that leverage parallel processing, system monitoring, and robust error handling.
+
+<Info>
+This guide teaches you how to extend TailStack's automation capabilities. You'll learn the patterns and techniques used in the production scripts.
+</Info>
+
+## Core Patterns
+
+TailStack automation scripts follow three fundamental patterns:
+
+<CardGroup cols={3}>
+  <Card title="Discovery" icon="magnifying-glass">
+    Recursively find files/directories across the monorepo
+  </Card>
+  <Card title="Parallel Execution" icon="arrows-split-up-and-left">
+    Process multiple targets concurrently using system threads
+  </Card>
+  <Card title="Resource Monitoring" icon="chart-line">
+    Track and respond to system load in real-time
+  </Card>
+</CardGroup>
+
+## Script Template
+
+Start with this template for cross-platform scripts:
+
+<Tabs>
+  <Tab title="PowerShell">
+    ```powershell template.ps1
+    <#
+    .SYNOPSIS
+        Brief description of what your script does.
+    .DESCRIPTION
+        Detailed explanation of functionality.
+    #>
+    
+    $ErrorActionPreference = "Stop"
+    
+    # -------------------------------------------------------------------------
+    # 1. CONFIGURATION
+    # -------------------------------------------------------------------------
+    
+    $ScriptName = "My Custom Script"
+    $MaxThreads = [Environment]::ProcessorCount * 2
+    
+    # -------------------------------------------------------------------------
+    # 2. HELPER FUNCTIONS
+    # -------------------------------------------------------------------------
+    
+    function Write-ColorOutput {
+        param($Message, $Color = "White")
+        Write-Host $Message -ForegroundColor $Color
+    }
+    
+    # -------------------------------------------------------------------------
+    # 3. MAIN EXECUTION
+    # -------------------------------------------------------------------------
+    
+    try {
+        Write-ColorOutput "--- $ScriptName ---" "Cyan"
+        $startTime = Get-Date
+        
+        # Your logic here
+        
+        $elapsed = (Get-Date) - $startTime
+        Write-ColorOutput "Completed in $($elapsed.TotalSeconds.ToString('F2'))s" "Green"
+        
+    } catch {
+        Write-ColorOutput "[ERROR] $($_.Exception.Message)" "Red"
+        exit 1
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Shell">
+    ```bash template.sh
+    #!/bin/bash
+    
+    # =========================================================================
+    # SYNOPSIS
+    #    Brief description of what your script does.
+    # DESCRIPTION
+    #    Detailed explanation of functionality.
+    # =========================================================================
+    
+    set -euo pipefail
+    
+    # -------------------------------------------------------------------------
+    # 1. CONFIGURATION & COLORS
+    # -------------------------------------------------------------------------
+    
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
+    CYAN='\033[0;36m'
+    NC='\033[0m' # No Color
+    
+    SCRIPT_NAME="My Custom Script"
+    
+    # Detect CPU count
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        CPU_COUNT=$(sysctl -n hw.ncpu)
+    else
+        CPU_COUNT=$(nproc)
+    fi
+    MAX_THREADS=$((CPU_COUNT * 2))
+    
+    # -------------------------------------------------------------------------
+    # 2. HELPER FUNCTIONS
+    # -------------------------------------------------------------------------
+    
+    log_info() {
+        echo -e "${CYAN}$1${NC}"
+    }
+    
+    log_success() {
+        echo -e "${GREEN}$1${NC}"
+    }
+    
+    log_error() {
+        echo -e "${RED}$1${NC}"
+    }
+    
+    # -------------------------------------------------------------------------
+    # 3. MAIN EXECUTION
+    # -------------------------------------------------------------------------
+    
+    log_info "--- $SCRIPT_NAME ---"
+    start_time=$(date +%s)
+    
+    # Your logic here
+    
+    end_time=$(date +%s)
+    elapsed=$((end_time - start_time))
+    log_success "Completed in ${elapsed}s"
+    ```
+  </Tab>
+</Tabs>
+
+## Common Use Cases
+
+### 1. Batch File Operations
+
+**Example: Convert all TypeScript files to use ES modules**
+
+<Tabs>
+  <Tab title="PowerShell">
+    ```powershell convert-to-esm.ps1
+    <#
+    .SYNOPSIS
+        Converts CommonJS imports to ES module syntax.
+    #>
+    
+    $ErrorActionPreference = "Stop"
+    
+    # Find all TypeScript files
+    Write-Host "Scanning for TypeScript files..." -ForegroundColor Cyan
+    $tsFiles = Get-ChildItem -Path . -Filter "*.ts" -Recurse -File `
+        | Where-Object { $_.FullName -notmatch "node_modules" }
+    
+    Write-Host "Found $($tsFiles.Count) files" -ForegroundColor Yellow
+    
+    # Parallel processing using Runspaces
+    $ConvertAction = {
+        param($FilePath)
+        try {
+            $content = Get-Content $FilePath -Raw
+            
+            # Replace require() with import
+            $content = $content -replace "const (\w+) = require\('([^']+)'\)", "import \$1 from '\$2'"
+            
+            # Replace module.exports with export
+            $content = $content -replace "module\.exports = ", "export default "
+            
+            Set-Content $FilePath -Value $content
+            return $true
+        } catch {
+            return $false
+        }
+    }
+    
+    $MaxThreads = [Environment]::ProcessorCount * 2
+    $Pool = [RunspaceFactory]::CreateRunspacePool(1, $MaxThreads)
+    $Pool.Open()
+    $Jobs = New-Object System.Collections.Generic.List[PSObject]
+    
+    foreach ($file in $tsFiles) {
+        $PS = [PowerShell]::Create().AddScript($ConvertAction).AddArgument($file.FullName)
+        $PS.RunspacePool = $Pool
+        $Jobs.Add([PSCustomObject]@{ 
+            Handle = $PS.BeginInvoke()
+            Instance = $PS
+            Path = $file.FullName
+        })
+    }
+    
+    $completed = 0
+    while ($Jobs.Handle.IsCompleted -contains $false) {
+        $done = ($Jobs | Where-Object { $_.Handle.IsCompleted }).Count
+        Write-Progress -Activity "Converting to ESM" -Status "$done/$($tsFiles.Count)" `
+            -PercentComplete (($done/$tsFiles.Count)*100)
+        Start-Sleep -Milliseconds 100
+    }
+    
+    $Jobs | ForEach-Object { 
+        $_.Instance.EndInvoke($_.Handle)
+        $_.Instance.Dispose() 
+    }
+    $Pool.Close()
+    
+    Write-Host "Conversion complete!" -ForegroundColor Green
+    ```
+  </Tab>
+  
+  <Tab title="Shell">
+    ```bash convert-to-esm.sh
+    #!/bin/bash
+    
+    set -euo pipefail
+    
+    CYAN='\033[0;36m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
+    NC='\033[0m'
+    
+    echo -e "${CYAN}Scanning for TypeScript files...${NC}"
+    
+    # Find all TypeScript files (excluding node_modules)
+    ts_files=$(mktemp)
+    find . -type d -name "node_modules" -prune -o -type f -name "*.ts" -print > "$ts_files"
+    
+    file_count=$(wc -l < "$ts_files")
+    echo -e "${YELLOW}Found $file_count files${NC}"
+    
+    # Conversion function
+    convert_file() {
+        local file=$1
+        
+        # Replace require() with import
+        sed -i.bak -E "s/const ([a-zA-Z0-9_]+) = require\('([^']+)'\)/import \1 from '\2'/g" "$file"
+        
+        # Replace module.exports with export
+        sed -i.bak "s/module\.exports = /export default /g" "$file"
+        
+        # Remove backup file
+        rm -f "${file}.bak"
+    }
+    
+    export -f convert_file
+    
+    # Parallel processing using xargs
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        cpu_count=$(sysctl -n hw.ncpu)
+    else
+        cpu_count=$(nproc)
+    fi
+    max_threads=$((cpu_count * 2))
+    
+    cat "$ts_files" | xargs -P "$max_threads" -I {} bash -c 'convert_file "{}"'
+    
+    rm -f "$ts_files"
+    echo -e "${GREEN}Conversion complete!${NC}"
+    ```
+  </Tab>
+</Tabs>
+
+### 2. Build Orchestration
+
+**Example: Parallel build with dependency order**
+
+```powershell build-all.ps1
+<#
+.SYNOPSIS
+    Builds all packages in dependency order with parallelization.
+#>
+
+$ErrorActionPreference = "Stop"
+
+# Read workspace dependencies from pnpm-workspace.yaml
+$workspace = Get-Content "pnpm-workspace.yaml" | ConvertFrom-Yaml
+$packages = $workspace.packages | ForEach-Object { 
+    Get-ChildItem -Path $_ -Filter "package.json" -Recurse 
+}
+
+# Build dependency graph
+$graph = @{}
+foreach ($pkg in $packages) {
+    $json = Get-Content $pkg.FullName | ConvertFrom-Json
+    $graph[$json.name] = @{
+        Path = $pkg.DirectoryName
+        Dependencies = @($json.dependencies.PSObject.Properties.Name)
+    }
+}
+
+# Topological sort (simplified)
+function Get-BuildOrder {
+    param($Graph)
+    $visited = @{}
+    $order = @()
+    
+    function Visit($node) {
+        if ($visited[$node]) { return }
+        $visited[$node] = $true
+        
+        foreach ($dep in $Graph[$node].Dependencies) {
+            if ($Graph[$dep]) { Visit $dep }
+        }
+        
+        $order += $node
+    }
+    
+    foreach ($node in $Graph.Keys) { Visit $node }
+    return $order
+}
+
+$buildOrder = Get-BuildOrder -Graph $graph
+
+Write-Host "Build order: $($buildOrder -join ' -> ')" -ForegroundColor Cyan
+
+# Execute builds
+foreach ($pkgName in $buildOrder) {
+    $pkgPath = $graph[$pkgName].Path
+    Write-Host "Building $pkgName..." -ForegroundColor Yellow
+    
+    Push-Location $pkgPath
+    try {
+        pnpm build
+        Write-Host "✓ $pkgName" -ForegroundColor Green
+    } catch {
+        Write-Host "✗ $pkgName" -ForegroundColor Red
+        exit 1
+    } finally {
+        Pop-Location
+    }
+}
+
+Write-Host "All packages built successfully!" -ForegroundColor Green
+```
+
+### 3. Code Quality Checks
+
+**Example: Run linters across all packages**
+
+```bash lint-all.sh
+#!/bin/bash
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+echo -e "${YELLOW}Running linters across monorepo...${NC}"
+
+# Find all package.json files
+packages_file=$(mktemp)
+find . -type d -name "node_modules" -prune -o -type f -name "package.json" -print > "$packages_file"
+
+failed_packages=()
+
+# Lint each package
+while IFS= read -r package_file; do
+    pkg_dir=$(dirname "$package_file")
+    pkg_name=$(basename "$pkg_dir")
+    
+    # Check if package has lint script
+    if grep -q '"lint"' "$package_file"; then
+        echo -e "${YELLOW}Linting $pkg_name...${NC}"
+        
+        if (cd "$pkg_dir" && pnpm lint); then
+            echo -e "${GREEN}✓ $pkg_name${NC}"
+        else
+            echo -e "${RED}✗ $pkg_name${NC}"
+            failed_packages+=("$pkg_name")
+        fi
+    fi
+done < "$packages_file"
+
+rm -f "$packages_file"
+
+# Summary
+if [ ${#failed_packages[@]} -eq 0 ]; then
+    echo -e "\n${GREEN}All lint checks passed!${NC}"
+    exit 0
+else
+    echo -e "\n${RED}Lint failed in ${#failed_packages[@]} package(s):${NC}"
+    printf '%s\n' "${failed_packages[@]}"
+    exit 1
+fi
+```
+
+## Advanced Techniques
+
+### Resource Monitoring
+
+Add system load monitoring to your scripts:
+
+<CodeGroup>
+```powershell PowerShell Monitoring
+function Get-SystemLoad {
+    $cpu = Get-CimInstance Win32_Processor | 
+        Measure-Object -Property LoadPercentage -Average | 
+        Select-Object -ExpandProperty Average
+    
+    $os = Get-CimInstance Win32_OperatingSystem
+    $ramUsage = 100 - [math]::Round(($os.FreePhysicalMemory / $os.TotalVisibleMemorySize) * 100)
+    
+    return @{
+        CPU = [math]::Round($cpu)
+        RAM = $ramUsage
+    }
+}
+
+# Usage in loop
+while ($hasWork) {
+    $load = Get-SystemLoad
+    
+    if ($load.CPU -gt 90 -or $load.RAM -gt 90) {
+        Write-Host "High load detected, throttling..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+        continue
+    }
+    
+    # Process work
+}
+```
+
+```bash Bash Monitoring
+get_system_load() {
+    # CPU from /proc/stat
+    read -r cpu a1 b1 c1 d1 rest < /proc/stat
+    total1=$((a1 + b1 + c1 + d1))
+    idle1=$d1
+    
+    sleep 0.1
+    
+    read -r cpu a2 b2 c2 d2 rest < /proc/stat
+    total2=$((a2 + b2 + c2 + d2))
+    idle2=$d2
+    
+    total_delta=$((total2 - total1))
+    idle_delta=$((idle2 - idle1))
+    cpu_usage=$(( ((total_delta - idle_delta) * 100) / total_delta ))
+    
+    # RAM from /proc/meminfo
+    mem_total=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    mem_avail=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+    ram_usage=$(( ((mem_total - mem_avail) * 100) / mem_total ))
+    
+    echo "$cpu_usage $ram_usage"
+}
+
+# Usage in loop
+while [ $has_work -eq 1 ]; do
+    read -r cpu_load ram_load <<< $(get_system_load)
+    
+    if [ $cpu_load -gt 90 ] || [ $ram_load -gt 90 ]; then
+        echo "High load detected, throttling..."
+        sleep 5
+        continue
+    fi
+    
+    # Process work
+done
+```
+</CodeGroup>
+
+### Progress Tracking
+
+Implement user-friendly progress displays:
+
+<CodeGroup>
+```powershell PowerShell Progress
+$total = 100
+$completed = 0
+
+while ($completed -lt $total) {
+    # Do work
+    $completed++
+    
+    # Update progress bar
+    Write-Progress `
+        -Activity "Processing Items" `
+        -Status "$completed of $total complete" `
+        -PercentComplete (($completed / $total) * 100)
+    
+    Start-Sleep -Milliseconds 100
+}
+
+Write-Progress -Activity "Processing Items" -Completed
+```
+
+```bash Bash Progress
+total=100
+completed=0
+
+while [ $completed -lt $total ]; do
+    # Do work
+    ((completed++))
+    
+    # Calculate percentage
+    percent=$(( (completed * 100) / total ))
+    
+    # Draw progress bar
+    bar_length=50
+    filled=$(( (percent * bar_length) / 100 ))
+    empty=$((bar_length - filled))
+    
+    printf "\r["
+    printf '%*s' "$filled" | tr ' ' '='
+    printf '%*s' "$empty" | tr ' ' '-'
+    printf "] %3d%% " "$percent"
+    
+    sleep 0.1
+done
+
+echo -e "\n"
+```
+</CodeGroup>
+
+### Error Handling
+
+Robust error handling patterns:
+
+<CodeGroup>
+```powershell PowerShell Error Handling
+$ErrorActionPreference = "Stop"
+
+try {
+    # Risky operation
+    $result = Invoke-Command -ScriptBlock { 
+        # Your code
+        if ($LASTEXITCODE -ne 0) {
+            throw "Command failed with exit code $LASTEXITCODE"
+        }
+    }
+    
+} catch {
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Location: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    
+    # Cleanup
+    # ...
+    
+    exit 1
+} finally {
+    # Always executes
+    Write-Host "Cleanup complete" -ForegroundColor Gray
+}
+```
+
+```bash Bash Error Handling
+set -euo pipefail
+
+# Trap errors
+trap 'error_handler $? $LINENO' ERR
+
+error_handler() {
+    local exit_code=$1
+    local line_number=$2
+    
+    echo -e "\n${RED}[ERROR] Script failed at line $line_number with exit code $exit_code${NC}"
+    
+    # Cleanup
+    cleanup
+    
+    exit "$exit_code"
+}
+
+cleanup() {
+    echo "Performing cleanup..."
+    # Cleanup operations
+}
+
+# Your code here
+```
+</CodeGroup>
+
+## Testing Scripts
+
+### Unit Testing (PowerShell)
+
+Use Pester for PowerShell script testing:
+
+```powershell my-script.Tests.ps1
+BeforeAll {
+    . $PSScriptRoot/my-script.ps1
+}
+
+Describe "MyFunction" {
+    It "Should return expected value" {
+        $result = MyFunction -Param "test"
+        $result | Should -Be "expected"
+    }
+    
+    It "Should handle errors" {
+        { MyFunction -Param "" } | Should -Throw
+    }
+}
+```
+
+Run tests:
+```powershell
+Invoke-Pester
+```
+
+### Integration Testing (Bash)
+
+Use BATS (Bash Automated Testing System):
+
+```bash my-script.bats
+#!/usr/bin/env bats
+
+setup() {
+    # Setup test environment
+    export TEST_DIR="$(mktemp -d)"
+}
+
+teardown() {
+    # Cleanup
+    rm -rf "$TEST_DIR"
+}
+
+@test "script executes successfully" {
+    run ./my-script.sh
+    [ "$status" -eq 0 ]
+}
+
+@test "script handles missing files" {
+    run ./my-script.sh nonexistent.txt
+    [ "$status" -eq 1 ]
+}
+```
+
+Run tests:
+```bash
+bats my-script.bats
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="1. Cross-Platform Compatibility">
+    **Always test on both Windows and Unix-like systems:**
+    
+    ✅ **Good:**
+    ```powershell
+    # PowerShell Core works on all platforms
+    $files = Get-ChildItem -Path . -Recurse
+    ```
+    
+    ✅ **Good:**
+    ```bash
+    # Bash script with macOS compatibility
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        cpu_count=$(sysctl -n hw.ncpu)
+    else
+        cpu_count=$(nproc)
+    fi
+    ```
+    
+    ❌ **Avoid:**
+    ```bash
+    # Linux-only command
+    cpu_count=$(nproc)  # Fails on macOS
+    ```
+  </Accordion>
+  
+  <Accordion title="2. Performance Optimization">
+    **Use parallel processing for I/O-bound operations:**
+    
+    - File operations (read/write/delete)
+    - Network requests (API calls, downloads)
+    - External command execution
+    
+    **Avoid parallel processing for:**
+    - CPU-intensive calculations (already uses all cores)
+    - Operations requiring strict ordering
+    - Resource-constrained environments
+  </Accordion>
+  
+  <Accordion title="3. Error Handling">
+    **Always handle errors gracefully:**
+    
+    ```powershell
+    # PowerShell
+    $ErrorActionPreference = "Stop"
+    
+    try {
+        # Risky code
+    } catch {
+        Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+    ```
+    
+    ```bash
+    # Bash
+    set -euo pipefail
+    
+    trap 'echo "Error at line $LINENO"' ERR
+    ```
+  </Accordion>
+  
+  <Accordion title="4. User Feedback">
+    **Provide clear, colored output:**
+    
+    - Use colors to indicate status (green = success, red = error, yellow = warning)
+    - Show progress for long-running operations
+    - Display summary at completion
+    - Use consistent formatting across scripts
+  </Accordion>
+  
+  <Accordion title="5. Documentation">
+    **Document your scripts thoroughly:**
+    
+    - Add synopsis and description at the top
+    - Document parameters and their purpose
+    - Include usage examples
+    - Explain complex logic with comments
+    - Note any platform-specific behavior
+  </Accordion>
+</AccordionGroup>
+
+## Script Organization
+
+Organize your custom scripts effectively:
+
+```
+scripts/
+├── core/                    # Built-in scripts
+│   ├── clean.ps1
+│   ├── clean.sh
+│   ├── install.ps1
+│   └── install.sh
+├── custom/                  # Your custom scripts
+│   ├── build-all.ps1
+│   ├── build-all.sh
+│   ├── deploy.ps1
+│   ├── deploy.sh
+│   ├── test-all.ps1
+│   └── test-all.sh
+├── utils/                   # Shared utilities
+│   ├── common.ps1           # PowerShell functions
+│   └── common.sh            # Bash functions
+└── README.md               # Script documentation
+```
+
+### Shared Utilities
+
+Create reusable utility functions:
+
+<CodeGroup>
+```powershell utils/common.ps1
+# Source this file in other scripts: . $PSScriptRoot/utils/common.ps1
+
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+function Get-MonorepoPackages {
+    return Get-ChildItem -Path . -Filter "package.json" -Recurse `
+        | Where-Object { $_.FullName -notmatch "node_modules" }
+}
+
+function Invoke-InParallel {
+    param(
+        [array]$Items,
+        [scriptblock]$Action
+    )
+    
+    $MaxThreads = [Environment]::ProcessorCount * 2
+    $Pool = [RunspaceFactory]::CreateRunspacePool(1, $MaxThreads)
+    $Pool.Open()
+    $Jobs = @()
+    
+    foreach ($item in $Items) {
+        $PS = [PowerShell]::Create().AddScript($Action).AddArgument($item)
+        $PS.RunspacePool = $Pool
+        $Jobs += @{ Handle = $PS.BeginInvoke(); Instance = $PS }
+    }
+    
+    $Jobs | ForEach-Object { 
+        $_.Instance.EndInvoke($_.Handle)
+        $_.Instance.Dispose()
+    }
+    $Pool.Close()
+}
+```
+
+```bash utils/common.sh
+# Source this file in other scripts: source "$(dirname "$0")/utils/common.sh"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${CYAN}$1${NC}"
+}
+
+log_success() {
+    echo -e "${GREEN}$1${NC}"
+}
+
+log_error() {
+    echo -e "${RED}$1${NC}"
+}
+
+get_cpu_count() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sysctl -n hw.ncpu
+    else
+        nproc
+    fi
+}
+
+get_monorepo_packages() {
+    find . -type d -name "node_modules" -prune -o -type f -name "package.json" -print
+}
+```
+</CodeGroup>
+
+## Examples Gallery
+
+<CardGroup cols={2}>
+  <Card title="Code Formatting" icon="paintbrush">
+    **Format all code files using Prettier**
+    ```bash
+    find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
+      -not -path "*/node_modules/*" | \
+      xargs -P $(nproc) -I {} prettier --write {}
+    ```
+  </Card>
+  
+  <Card title="Dependency Audit" icon="shield">
+    **Check all packages for vulnerabilities**
+    ```powershell
+    Get-ChildItem -Filter "package.json" -Recurse | \
+      ForEach-Object -Parallel {
+        Push-Location $_.DirectoryName
+        pnpm audit
+        Pop-Location
+      } -ThrottleLimit 4
+    ```
+  </Card>
+  
+  <Card title="License Compliance" icon="scale-balanced">
+    **Generate license report**
+    ```bash
+    pnpm licenses list --json > licenses.json
+    node scripts/check-licenses.js
+    ```
+  </Card>
+  
+  <Card title="Bundle Analysis" icon="chart-pie">
+    **Analyze bundle sizes across packages**
+    ```bash
+    for pkg in packages/*; do
+      cd "$pkg" && pnpm build && pnpm analyze
+    done
+    ```
+  </Card>
+</CardGroup>
+
+## Debugging Scripts
+
+<Tabs>
+  <Tab title="PowerShell">
+    **Enable debug output:**
+    ```powershell
+    # Set verbose preference
+    $VerbosePreference = "Continue"
+    
+    # Add debug statements
+    Write-Verbose "Processing file: $file"
+    Write-Debug "Variable value: $myVar"
+    ```
+    
+    **Use transcript:**
+    ```powershell
+    Start-Transcript -Path "./script-log.txt"
+    # Your script code
+    Stop-Transcript
+    ```
+    
+    **Set breakpoints in VS Code:**
+    ```json
+    // .vscode/launch.json
+    {
+      "type": "PowerShell",
+      "request": "launch",
+      "name": "Debug Script",
+      "script": "${workspaceFolder}/scripts/my-script.ps1"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Bash">
+    **Enable debug mode:**
+    ```bash
+    # Print each command before execution
+    set -x
+    
+    # Your script code
+    
+    # Disable debug
+    set +x
+    ```
+    
+    **Add debug statements:**
+    ```bash
+    DEBUG=${DEBUG:-0}
+    
+    debug() {
+        if [ $DEBUG -eq 1 ]; then
+            echo "[DEBUG] $1" >&2
+        fi
+    }
+    
+    debug "Processing file: $file"
+    ```
+    
+    **Run with debug:**
+    ```bash
+    DEBUG=1 ./my-script.sh
+    ```
+  </Tab>
+</Tabs>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Clean Script" icon="trash" href="/automation/clean-script">
+    Study the parallel deletion implementation
+  </Card>
+  <Card title="Install Script" icon="download" href="/automation/install-script">
+    Learn from the load monitoring system
+  </Card>
+  <Card title="Scripts Architecture" icon="sitemap" href="/architecture/scripts">
+    Understand the overall scripts architecture
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/contributing">
+    Share your custom scripts with the community
+  </Card>
+</CardGroup>

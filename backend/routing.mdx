@@ -1,0 +1,301 @@
+---
+title: 'Routing'
+description: 'Express routing patterns and API endpoint creation in TailStack'
+---
+
+## Overview
+
+TailStack uses Express Router for clean, modular routing. Routes are organized by feature, making it easy to maintain and scale your API.
+
+## Route Structure
+
+Routes follow a hierarchical structure:
+
+```
+src/routes/
+├── index.ts           # Main router that combines all routes
+└── weather.routes.ts  # Feature-specific route definitions
+```
+
+## Main Router
+
+The main router combines all feature routes:
+
+```typescript title="packages/core/source/Server/src/routes/index.ts"
+import { Router } from 'express';
+import weatherRoutes from './weather.routes';
+
+const router = Router();
+
+router.use('/weather', weatherRoutes);
+
+export default router;
+```
+
+This router is mounted at `/api` in `app.ts`, so all routes are prefixed with `/api`.
+
+## Feature Routes Example
+
+Here's the weather routes implementation:
+
+```typescript title="packages/core/source/Server/src/routes/weather.routes.ts"
+import { Router } from 'express';
+import { WeatherController } from '../controller/weather.controller';
+
+const router = Router();
+
+router.get('/location', WeatherController.getWeatherByLocation);
+router.get('/coordinates', WeatherController.getWeatherByCoordinates);
+
+export default router;
+```
+
+### Available Endpoints
+
+With the current setup, the following endpoints are available:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/weather/location` | Get weather by location name |
+| `GET` | `/api/weather/coordinates` | Get weather by coordinates |
+
+## Creating New Routes
+
+<Steps>
+  <Step title="Create Route File">
+    Create a new route file in the `routes/` directory:
+    
+    ```typescript title="src/routes/users.routes.ts"
+    import { Router } from 'express';
+    import { UserController } from '../controller/user.controller';
+    
+    const router = Router();
+    
+    router.get('/', UserController.getAllUsers);
+    router.get('/:id', UserController.getUserById);
+    router.post('/', UserController.createUser);
+    router.put('/:id', UserController.updateUser);
+    router.delete('/:id', UserController.deleteUser);
+    
+    export default router;
+    ```
+  </Step>
+  
+  <Step title="Register Route">
+    Add the route to the main router:
+    
+    ```typescript title="src/routes/index.ts"
+    import { Router } from 'express';
+    import weatherRoutes from './weather.routes';
+    import userRoutes from './users.routes';
+    
+    const router = Router();
+    
+    router.use('/weather', weatherRoutes);
+    router.use('/users', userRoutes);
+    
+    export default router;
+    ```
+  </Step>
+  
+  <Step title="Create Controller">
+    Implement the controller with your business logic:
+    
+    ```typescript title="src/controller/user.controller.ts"
+    import { Request, Response } from 'express';
+    
+    export class UserController {
+      static async getAllUsers(req: Request, res: Response): Promise<void> {
+        // Implementation
+      }
+      
+      static async getUserById(req: Request, res: Response): Promise<void> {
+        // Implementation
+      }
+      
+      // ... other methods
+    }
+    ```
+  </Step>
+</Steps>
+
+## Weather API Example
+
+Let's look at a complete example with the weather controller:
+
+```typescript title="packages/core/source/Server/src/controller/weather.controller.ts"
+import { Request, Response } from 'express';
+import { WeatherService } from '../services/weather.service';
+
+export class WeatherController {
+  /**
+   * Get weather by location name
+   */
+  static async getWeatherByLocation(req: Request, res: Response): Promise<void> {
+    try {
+      const { location } = req.query;
+
+      if (!location || typeof location !== 'string') {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Location parameter is required',
+        });
+        return;
+      }
+
+      const weatherData = await WeatherService.getWeatherByLocation(location);
+      res.json(weatherData);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage,
+      });
+    }
+  }
+
+  /**
+   * Get weather by coordinates
+   */
+  static async getWeatherByCoordinates(req: Request, res: Response): Promise<void> {
+    try {
+      const { lat, lon } = req.query;
+
+      if (!lat || !lon) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Both lat and lon parameters are required',
+        });
+        return;
+      }
+
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lon as string);
+
+      if (isNaN(latitude) || isNaN(longitude)) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Lat and lon must be valid numbers',
+        });
+        return;
+      }
+
+      const weatherData = await WeatherService.getWeatherByCoordinates(latitude, longitude);
+      res.json(weatherData);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage,
+      });
+    }
+  }
+}
+```
+
+### Example Requests
+
+<CodeGroup>
+
+```bash curl
+# Get weather by location
+curl "http://localhost:5000/api/weather/location?location=London"
+
+# Get weather by coordinates
+curl "http://localhost:5000/api/weather/coordinates?lat=51.5074&lon=-0.1278"
+```
+
+```javascript fetch
+// Get weather by location
+const response = await fetch(
+  'http://localhost:5000/api/weather/location?location=London'
+);
+const data = await response.json();
+
+// Get weather by coordinates
+const response = await fetch(
+  'http://localhost:5000/api/weather/coordinates?lat=51.5074&lon=-0.1278'
+);
+const data = await response.json();
+```
+
+</CodeGroup>
+
+## Controller Pattern
+
+TailStack uses static controller methods for route handlers:
+
+<AccordionGroup>
+  <Accordion title="Why static methods?">
+    Static methods are simpler and don't require instantiation. They work well for stateless request handlers.
+  </Accordion>
+  
+  <Accordion title="Error handling">
+    Controllers handle errors and return appropriate HTTP status codes (400 for validation errors, 500 for server errors).
+  </Accordion>
+  
+  <Accordion title="Type safety">
+    TypeScript ensures type safety for request and response objects, preventing runtime errors.
+  </Accordion>
+  
+  <Accordion title="Separation of concerns">
+    Controllers handle HTTP concerns (request/response), while services contain business logic.
+  </Accordion>
+</AccordionGroup>
+
+## Route Parameters
+
+Express supports several parameter types:
+
+### Query Parameters
+
+```typescript
+// Route: /api/weather/location?location=London
+const { location } = req.query;
+```
+
+### URL Parameters
+
+```typescript
+// Route: /api/users/:id
+const { id } = req.params;
+```
+
+### Request Body
+
+```typescript
+// POST /api/users
+const { name, email } = req.body;
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Controllers" icon="layer-group">
+    Separate route definitions from business logic using controllers
+  </Card>
+  <Card title="Validate Input" icon="shield-check">
+    Always validate request parameters before processing
+  </Card>
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    Implement proper error handling with appropriate status codes
+  </Card>
+  <Card title="Type Safety" icon="check">
+    Use TypeScript types for request/response objects
+  </Card>
+</CardGroup>
+
+<Tip>
+  Group related routes together in feature-specific route files for better organization and maintainability.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Middleware" icon="filter" href="/backend/middleware">
+    Learn about middleware for authentication, validation, and more
+  </Card>
+  <Card title="Server Setup" icon="server" href="/backend/server-setup">
+    Understand how routes are mounted in the Express app
+  </Card>
+</CardGroup>

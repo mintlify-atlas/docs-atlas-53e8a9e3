@@ -1,0 +1,522 @@
+---
+title: 'State Management'
+description: 'State management patterns, custom hooks, and data flow in TailStack applications'
+---
+
+## Overview
+
+TailStack uses **React hooks** and custom hook patterns for state management, providing a lightweight alternative to external state management libraries for most use cases.
+
+## State Management Philosophy
+
+TailStack follows these principles:
+
+1. **Local state first** - Keep state close to where it's used
+2. **Custom hooks for shared logic** - Encapsulate reusable state patterns
+3. **Context for global state** - Use React Context for theme, auth, etc.
+4. **URL as state** - Leverage React Router for navigation state
+5. **Server state separation** - Use appropriate tools for API data
+
+## Custom Hooks
+
+TailStack includes several custom hooks for common patterns:
+
+### useTheme Hook
+
+Manages theme state with localStorage persistence and system preference detection:
+
+```ts packages/core/source/frontend/src/hooks/use-theme.ts
+import { useEffect, useState } from 'react';
+import type { Theme } from '@/types/theme';
+
+export function useTheme() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage first
+    const stored = localStorage.getItem('theme') as Theme | null;
+    if (stored) return stored;
+    
+    // Check system preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  return { theme, toggleTheme, setTheme };
+}
+```
+
+<Info>
+The `useTheme` hook initializes from localStorage, falls back to system preferences, and persists changes automatically.
+</Info>
+
+#### Usage Example
+
+```tsx
+import { useTheme } from '@/hooks/use-theme';
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <button onClick={toggleTheme}>
+      Current theme: {theme}
+    </button>
+  );
+}
+```
+
+### useNavigation Hook
+
+Provides navigation state and active route detection:
+
+```ts packages/core/source/frontend/src/hooks/use-navigation.ts
+import { useLocation } from 'react-router-dom';
+
+export function useNavigation() {
+  const location = useLocation();
+
+  const isActive = (path: string, exact = true) => {
+    if (exact) {
+      return location.pathname === path;
+    }
+    if (path === '/docs') {
+      return location.pathname.startsWith('/docs');
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return { location, isActive };
+}
+```
+
+#### Usage Example
+
+```tsx
+import { useNavigation } from '@/hooks/use-navigation';
+import { Link } from 'react-router-dom';
+
+function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const { isActive } = useNavigation();
+  const active = isActive(to, to !== '/docs');
+
+  return (
+    <Link 
+      to={to} 
+      className={active ? 'text-foreground font-medium' : 'text-muted-foreground'}
+    >
+      {children}
+    </Link>
+  );
+}
+```
+
+### useToggle Hook
+
+Simplifies boolean state management with toggle functionality:
+
+```ts packages/core/source/frontend/src/hooks/use-toggle.ts
+import { useState, useCallback } from 'react';
+
+export function useToggle(initialValue = false) {
+  const [value, setValue] = useState(initialValue);
+
+  const toggle = useCallback(() => {
+    setValue((v) => !v);
+  }, []);
+
+  return [value, toggle, setValue] as const;
+}
+```
+
+#### Usage Example
+
+```tsx
+import { useToggle } from '@/hooks/use-toggle';
+
+function MobileMenu() {
+  const [isOpen, toggle, setIsOpen] = useToggle(false);
+
+  return (
+    <>
+      <button onClick={toggle}>Toggle Menu</button>
+      {isOpen && (
+        <nav>
+          <a href="/home" onClick={() => setIsOpen(false)}>Home</a>
+          <a href="/docs" onClick={() => setIsOpen(false)}>Docs</a>
+        </nav>
+      )}
+    </>
+  );
+}
+```
+
+<Tip>
+The `useToggle` hook returns a tuple: `[value, toggle, setValue]` for maximum flexibility.
+</Tip>
+
+## Local State Management
+
+For component-specific state, use React's built-in hooks:
+
+### useState
+
+```tsx
+import { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+      <button onClick={() => setCount(0)}>Reset</button>
+    </div>
+  );
+}
+```
+
+### useReducer
+
+For complex state logic:
+
+```tsx
+import { useReducer } from 'react';
+
+type State = { count: number; step: number };
+type Action = 
+  | { type: 'increment' }
+  | { type: 'decrement' }
+  | { type: 'setStep'; payload: number };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'increment':
+      return { ...state, count: state.count + state.step };
+    case 'decrement':
+      return { ...state, count: state.count - state.step };
+    case 'setStep':
+      return { ...state, step: action.payload };
+    default:
+      return state;
+  }
+}
+
+function AdvancedCounter() {
+  const [state, dispatch] = useReducer(reducer, { count: 0, step: 1 });
+
+  return (
+    <div>
+      <p>Count: {state.count}</p>
+      <button onClick={() => dispatch({ type: 'increment' })}>+{state.step}</button>
+      <button onClick={() => dispatch({ type: 'decrement' })}>-{state.step}</button>
+      <input 
+        type="number" 
+        value={state.step}
+        onChange={(e) => dispatch({ type: 'setStep', payload: Number(e.target.value) })}
+      />
+    </div>
+  );
+}
+```
+
+## Form State Management
+
+Handle form state with controlled components:
+
+```tsx
+import { useState, FormEvent } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
+interface FormData {
+  email: string;
+  password: string;
+}
+
+function LoginForm() {
+  const [formData, setFormData] = useState<FormData>({
+    email: '',
+    password: '',
+  });
+  const [errors, setErrors] = useState<Partial<FormData>>({});
+
+  const handleChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    // Clear error when user types
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Partial<FormData> = {};
+    if (!formData.email.includes('@')) {
+      newErrors.email = 'Invalid email';
+    }
+    if (formData.password.length < 8) {
+      newErrors.password = 'Password must be 8+ characters';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      // Submit form
+      console.log('Form submitted:', formData);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Input
+          type="email"
+          value={formData.email}
+          onChange={handleChange('email')}
+          placeholder="Email"
+        />
+        {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+      </div>
+      <div>
+        <Input
+          type="password"
+          value={formData.password}
+          onChange={handleChange('password')}
+          placeholder="Password"
+        />
+        {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+      </div>
+      <Button type="submit">Login</Button>
+    </form>
+  );
+}
+```
+
+## Global State with Context
+
+For application-wide state, use React Context:
+
+```tsx
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  login: (user: User) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+
+  const login = (user: User) => {
+    setUser(user);
+    localStorage.setItem('user', JSON.stringify(user));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  const value = {
+    user,
+    login,
+    logout,
+    isAuthenticated: !!user,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+### Using the Context
+
+```tsx
+import { useAuth } from '@/contexts/auth-context';
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+function Profile() {
+  const { user, logout, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {user.name}</h1>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+}
+```
+
+## Async State Management
+
+Handle API calls and async operations:
+
+```tsx
+import { useState, useEffect } from 'react';
+
+interface AsyncState<T> {
+  data: T | null;
+  loading: boolean;
+  error: Error | null;
+}
+
+function useAsync<T>(asyncFn: () => Promise<T>, deps: any[] = []) {
+  const [state, setState] = useState<AsyncState<T>>({
+    data: null,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setState({ data: null, loading: true, error: null });
+
+    asyncFn()
+      .then(data => {
+        if (!cancelled) {
+          setState({ data, loading: false, error: null });
+        }
+      })
+      .catch(error => {
+        if (!cancelled) {
+          setState({ data: null, loading: false, error });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, deps);
+
+  return state;
+}
+
+// Usage
+function UserProfile({ userId }: { userId: string }) {
+  const { data, loading, error } = useAsync(
+    () => fetch(`/api/users/${userId}`).then(r => r.json()),
+    [userId]
+  );
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  if (!data) return null;
+
+  return <div>User: {data.name}</div>;
+}
+```
+
+## State Management Best Practices
+
+1. **Start with local state** - Lift state only when necessary
+2. **Use custom hooks** - Encapsulate reusable state logic
+3. **Minimize re-renders** - Use `useCallback` and `useMemo` appropriately
+4. **Separate concerns** - UI state vs. server state vs. URL state
+5. **Type your state** - Use TypeScript for type-safe state management
+6. **Handle loading and error states** - Provide good UX for async operations
+7. **Persist important state** - Use localStorage for user preferences
+
+## Creating Custom Hooks
+
+Follow this pattern for reusable hooks:
+
+```tsx
+import { useState, useEffect } from 'react';
+
+// Hook for managing local storage state
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
+  }, [key, value]);
+
+  return [value, setValue] as const;
+}
+
+// Usage
+function Settings() {
+  const [notifications, setNotifications] = useLocalStorage('notifications', true);
+
+  return (
+    <label>
+      <input
+        type="checkbox"
+        checked={notifications}
+        onChange={(e) => setNotifications(e.target.checked)}
+      />
+      Enable notifications
+    </label>
+  );
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="layer-group" href="/frontend/components">
+    Learn about component structure and shadcn UI components
+  </Card>
+  <Card title="Routing" icon="route" href="/frontend/routing">
+    Explore React Router setup and navigation patterns
+  </Card>
+</CardGroup>

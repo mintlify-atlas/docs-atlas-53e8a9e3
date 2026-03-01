@@ -1,0 +1,772 @@
+---
+title: Deployment Guide
+description: Deploy your TailStack application to production with best practices for building, environment variables, and hosting
+---
+
+This guide covers deploying your TailStack Core monorepo to production, including building both frontend and backend, configuring environment variables, and deployment strategies.
+
+## Pre-Deployment Checklist
+
+Before deploying, ensure your application is production-ready:
+
+<Steps>
+  <Step title="Environment Variables">
+    Configure production environment variables for both frontend and backend.
+  </Step>
+
+  <Step title="Build Testing">
+    Test production builds locally to catch issues early.
+  </Step>
+
+  <Step title="Security Review">
+    Review CORS settings, API keys, and sensitive data handling.
+  </Step>
+
+  <Step title="Performance">
+    Ensure clustering is enabled and optimized for production.
+  </Step>
+</Steps>
+
+## Building for Production
+
+### Backend Build
+
+The backend TypeScript code must be compiled to JavaScript:
+
+<Tabs>
+  <Tab title="Build Command">
+    ```bash
+    cd packages/core/source/Server
+    pnpm build
+    ```
+    
+    This runs the build script from `package.json:8`:
+    
+    ```json
+    {
+      "scripts": {
+        "build": "tsc"
+      }
+    }
+    ```
+    
+    The TypeScript compiler outputs JavaScript to the `dist/` directory.
+  </Tab>
+  
+  <Tab title="Output Structure">
+    After building, you'll have:
+    
+    ```bash
+    packages/core/source/Server/
+    ├── dist/              # Compiled JavaScript
+    │   ├── app.js
+    │   ├── server.js
+    │   ├── routes/
+    │   ├── controller/
+    │   ├── services/
+    │   └── ...
+    ├── src/               # Source TypeScript
+    └── package.json
+    ```
+  </Tab>
+  
+  <Tab title="Start Production Server">
+    ```bash
+    pnpm start
+    ```
+    
+    From `package.json:9`:
+    
+    ```json
+    {
+      "scripts": {
+        "start": "node dist/server.js"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Frontend Build
+
+The frontend must be built for production using Vite:
+
+<Tabs>
+  <Tab title="Build Command">
+    ```bash
+    cd packages/core/source/frontend
+    pnpm build
+    ```
+    
+    From `package.json:8`:
+    
+    ```json
+    {
+      "scripts": {
+        "build": "tsc -b && vite build"
+      }
+    }
+    ```
+    
+    This:
+    1. Compiles TypeScript (`tsc -b`)
+    2. Bundles with Vite (`vite build`)
+  </Tab>
+  
+  <Tab title="Output">
+    Vite outputs optimized static files to `dist/`:
+    
+    ```bash
+    packages/core/source/frontend/
+    ├── dist/              # Production build
+    │   ├── index.html
+    │   ├── assets/
+    │   │   ├── index-[hash].js
+    │   │   ├── index-[hash].css
+    │   │   └── ...
+    │   └── ...
+    └── src/
+    ```
+  </Tab>
+  
+  <Tab title="Preview Build">
+    Test the production build locally:
+    
+    ```bash
+    pnpm preview
+    ```
+    
+    Vite serves the `dist/` folder at `http://localhost:4173`
+  </Tab>
+</Tabs>
+
+### Build Entire Monorepo
+
+From the root `packages/core/` directory:
+
+```bash
+# Build both frontend and backend
+pnpm --filter ./source/frontend build
+pnpm --filter ./source/Server build
+```
+
+Or create a combined script in `packages/core/package.json`:
+
+```json
+{
+  "scripts": {
+    "build": "pnpm --filter ./source/frontend build && pnpm --filter ./source/Server build",
+    "build:frontend": "pnpm --filter ./source/frontend build",
+    "build:backend": "pnpm --filter ./source/Server build"
+  }
+}
+```
+
+## Environment Variables
+
+### Backend Environment Variables
+
+Create `packages/core/source/Server/.env.production`:
+
+```bash
+# Server Configuration
+PORT=5000
+NODE_ENV=production
+
+# CORS - Set to your frontend domain
+CORS_ORIGIN=https://your-app.com
+
+# Cluster Configuration
+WORKERS=0  # Auto-detect CPU cores for maximum performance
+
+# API Keys (use secrets manager in production)
+WEATHER_API_KEY=your-production-api-key
+
+# Database
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+
+# Optional: Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+<Warning>
+  Never commit `.env` files with production secrets. Use environment variable management from your hosting provider or a secrets manager like AWS Secrets Manager, HashiCorp Vault, or Doppler.
+</Warning>
+
+### Frontend Environment Variables
+
+Create `packages/core/source/frontend/.env.production`:
+
+```bash
+# API Configuration - Set to your backend URL
+VITE_API_BASE_URL=https://api.your-app.com
+
+# Optional: Analytics
+VITE_ANALYTICS_ID=your-analytics-id
+
+# Optional: Feature Flags
+VITE_ENABLE_FEATURE_X=true
+```
+
+Vite only exposes variables prefixed with `VITE_` to the client. These are read in `src/config/api.ts:2`:
+
+```typescript
+export const API_CONFIG = {
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+  endpoints: {
+    weather: {
+      byLocation: '/api/weather/location',
+      byCoordinates: '/api/weather/coordinates',
+    },
+  },
+};
+```
+
+## Deployment Strategies
+
+### Strategy 1: Separate Hosting (Recommended)
+
+Deploy frontend and backend separately for better scalability:
+
+<Tabs>
+  <Tab title="Frontend (Vercel)">
+    Deploy the frontend to Vercel:
+    
+    1. **Connect Repository**
+       - Push your code to GitHub/GitLab/Bitbucket
+       - Import project in Vercel
+    
+    2. **Configure Build Settings**
+       ```bash
+       # Root Directory
+       packages/core/source/frontend
+       
+       # Build Command
+       pnpm build
+       
+       # Output Directory
+       dist
+       
+       # Install Command
+       pnpm install
+       ```
+    
+    3. **Environment Variables**
+       Add in Vercel dashboard:
+       ```
+       VITE_API_BASE_URL=https://api.your-app.com
+       ```
+    
+    4. **Deploy**
+       - Vercel auto-deploys on git push
+       - Frontend available at `https://your-app.vercel.app`
+  </Tab>
+  
+  <Tab title="Backend (Railway)">
+    Deploy the backend to Railway:
+    
+    1. **Create New Project**
+       - Connect GitHub repository
+       - Railway auto-detects Node.js
+    
+    2. **Configure**
+       ```bash
+       # Root Directory
+       packages/core/source/Server
+       
+       # Build Command
+       pnpm build
+       
+       # Start Command
+       pnpm start
+       ```
+    
+    3. **Environment Variables**
+       Add in Railway dashboard:
+       ```
+       PORT=5000
+       NODE_ENV=production
+       CORS_ORIGIN=https://your-app.vercel.app
+       WORKERS=0
+       ```
+    
+    4. **Deploy**
+       - Railway auto-deploys on git push
+       - Backend available at `https://your-app.up.railway.app`
+  </Tab>
+  
+  <Tab title="Backend (Render)">
+    Deploy the backend to Render:
+    
+    1. **Create Web Service**
+       - Connect repository
+       - Select Node runtime
+    
+    2. **Configure**
+       ```bash
+       # Root Directory
+       packages/core/source/Server
+       
+       # Build Command
+       pnpm install && pnpm build
+       
+       # Start Command
+       pnpm start
+       ```
+    
+    3. **Environment Variables**
+       ```
+       PORT=5000
+       NODE_ENV=production
+       CORS_ORIGIN=https://your-app.vercel.app
+       WORKERS=0
+       ```
+    
+    4. **Health Check**
+       Set path to `/health`
+  </Tab>
+  
+  <Tab title="Frontend (Netlify)">
+    Deploy the frontend to Netlify:
+    
+    1. **Connect Repository**
+       - Import from Git
+    
+    2. **Build Settings**
+       ```bash
+       # Base Directory
+       packages/core/source/frontend
+       
+       # Build Command
+       pnpm build
+       
+       # Publish Directory
+       dist
+       ```
+    
+    3. **Environment Variables**
+       ```
+       VITE_API_BASE_URL=https://api.your-app.com
+       ```
+    
+    4. **Redirects for SPA**
+       Create `packages/core/source/frontend/public/_redirects`:
+       ```
+       /* /index.html 200
+       ```
+  </Tab>
+</Tabs>
+
+### Strategy 2: Single Server (VPS)
+
+Deploy both frontend and backend on a single server:
+
+<Steps>
+  <Step title="Setup Server">
+    Use a VPS provider (DigitalOcean, Linode, AWS EC2):
+    
+    ```bash
+    # Update system
+    sudo apt update && sudo apt upgrade -y
+    
+    # Install Node.js 20+
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt install -y nodejs
+    
+    # Install pnpm
+    npm install -g pnpm
+    
+    # Install nginx
+    sudo apt install -y nginx
+    ```
+  </Step>
+
+  <Step title="Deploy Code">
+    ```bash
+    # Clone repository
+    git clone https://github.com/your-repo/tailstack.git
+    cd tailstack
+    
+    # Install dependencies
+    pnpm install
+    
+    # Build frontend and backend
+    cd packages/core
+    pnpm --filter ./source/frontend build
+    pnpm --filter ./source/Server build
+    ```
+  </Step>
+
+  <Step title="Configure Nginx">
+    Create `/etc/nginx/sites-available/tailstack`:
+    
+    ```nginx
+    server {
+        listen 80;
+        server_name your-domain.com;
+    
+        # Frontend - serve static files
+        location / {
+            root /path/to/tailstack/packages/core/source/frontend/dist;
+            try_files $uri $uri/ /index.html;
+        }
+    
+        # Backend - proxy to Node.js
+        location /api {
+            proxy_pass http://localhost:5000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+    
+        # Health check
+        location /health {
+            proxy_pass http://localhost:5000;
+        }
+    }
+    ```
+    
+    Enable and restart:
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/tailstack /etc/nginx/sites-enabled/
+    sudo nginx -t
+    sudo systemctl restart nginx
+    ```
+  </Step>
+
+  <Step title="Process Manager (PM2)">
+    Use PM2 to keep the backend running:
+    
+    ```bash
+    # Install PM2
+    npm install -g pm2
+    
+    # Start backend
+    cd packages/core/source/Server
+    pm2 start dist/server.js --name tailstack-api
+    
+    # Save PM2 configuration
+    pm2 save
+    pm2 startup
+    
+    # Monitor
+    pm2 status
+    pm2 logs tailstack-api
+    ```
+  </Step>
+
+  <Step title="SSL with Certbot">
+    ```bash
+    sudo apt install -y certbot python3-certbot-nginx
+    sudo certbot --nginx -d your-domain.com
+    ```
+  </Step>
+</Steps>
+
+### Strategy 3: Docker Deployment
+
+Containerize your application:
+
+<Tabs>
+  <Tab title="Backend Dockerfile">
+    Create `packages/core/source/Server/Dockerfile`:
+    
+    ```dockerfile
+    FROM node:20-alpine AS builder
+    
+    WORKDIR /app
+    
+    # Install pnpm
+    RUN npm install -g pnpm
+    
+    # Copy package files
+    COPY package.json pnpm-lock.yaml ./
+    
+    # Install dependencies
+    RUN pnpm install --frozen-lockfile
+    
+    # Copy source
+    COPY . .
+    
+    # Build
+    RUN pnpm build
+    
+    # Production image
+    FROM node:20-alpine
+    
+    WORKDIR /app
+    
+    RUN npm install -g pnpm
+    
+    COPY package.json pnpm-lock.yaml ./
+    RUN pnpm install --prod --frozen-lockfile
+    
+    COPY --from=builder /app/dist ./dist
+    
+    EXPOSE 5000
+    
+    CMD ["pnpm", "start"]
+    ```
+  </Tab>
+  
+  <Tab title="Frontend Dockerfile">
+    Create `packages/core/source/frontend/Dockerfile`:
+    
+    ```dockerfile
+    FROM node:20-alpine AS builder
+    
+    WORKDIR /app
+    
+    RUN npm install -g pnpm
+    
+    COPY package.json pnpm-lock.yaml ./
+    RUN pnpm install --frozen-lockfile
+    
+    COPY . .
+    RUN pnpm build
+    
+    # Serve with nginx
+    FROM nginx:alpine
+    
+    COPY --from=builder /app/dist /usr/share/nginx/html
+    
+    # Custom nginx config for SPA
+    COPY nginx.conf /etc/nginx/conf.d/default.conf
+    
+    EXPOSE 80
+    
+    CMD ["nginx", "-g", "daemon off;"]
+    ```
+    
+    Create `packages/core/source/frontend/nginx.conf`:
+    
+    ```nginx
+    server {
+        listen 80;
+        root /usr/share/nginx/html;
+        index index.html;
+    
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="docker-compose.yml">
+    Create `packages/core/docker-compose.yml`:
+    
+    ```yaml
+    version: '3.8'
+    
+    services:
+      backend:
+        build:
+          context: ./source/Server
+          dockerfile: Dockerfile
+        ports:
+          - "5000:5000"
+        environment:
+          - NODE_ENV=production
+          - PORT=5000
+          - CORS_ORIGIN=http://localhost:3000
+          - WORKERS=0
+        restart: unless-stopped
+    
+      frontend:
+        build:
+          context: ./source/frontend
+          dockerfile: Dockerfile
+        ports:
+          - "3000:80"
+        environment:
+          - VITE_API_BASE_URL=http://localhost:5000
+        depends_on:
+          - backend
+        restart: unless-stopped
+    ```
+    
+    Deploy:
+    ```bash
+    docker-compose up -d
+    ```
+  </Tab>
+</Tabs>
+
+## Cluster Configuration
+
+The backend uses Node.js clustering for production performance:
+
+`packages/core/source/Server/src/cluster/index.ts:1`
+
+```typescript
+export const initializeCluster = (workerCallback: () => void) => {
+  if (cluster.isPrimary) {
+    const numCPUs = config.workers || availableParallelism();
+    
+    console.log(`⚙️ Spawning ${numCPUs} workers for maximum performance...`);
+
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    // Auto-restart failed workers
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`⚠️ Worker ${worker.process.pid} died`);
+      setTimeout(() => cluster.fork(), CLUSTER_CONFIG.RESTART_DELAY);
+    });
+  } else {
+    workerCallback();
+  }
+};
+```
+
+### Cluster Environment Variables
+
+```bash
+# Auto-detect CPU cores (recommended for production)
+WORKERS=0
+
+# Manual control (useful for limited resources)
+WORKERS=2
+
+# Single worker for debugging
+WORKERS=1
+```
+
+<Warning>
+  Setting `WORKERS=0` auto-detects CPU cores using `availableParallelism()`. On a 4-core server, this spawns 4 worker processes for optimal performance.
+</Warning>
+
+## CORS Configuration
+
+Update CORS for production:
+
+`packages/core/source/Server/src/middlewares/cors.ts`
+
+```typescript
+import cors from 'cors';
+import { config } from '../config';
+
+export const corsMiddleware = cors({
+  origin: config.corsOrigin,  // Set via CORS_ORIGIN env var
+  credentials: true,
+});
+```
+
+Production `.env`:
+
+```bash
+# Single domain
+CORS_ORIGIN=https://your-app.com
+
+# Multiple domains (modify middleware)
+CORS_ORIGINS=https://app1.com,https://app2.com
+```
+
+For multiple origins:
+
+```typescript
+const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [];
+
+export const corsMiddleware = cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+});
+```
+
+## Health Checks
+
+The backend includes a health check endpoint at `/health`:
+
+`packages/core/source/Server/src/app.ts:18`
+
+```typescript
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+```
+
+Use this for:
+- Load balancer health checks
+- Monitoring services
+- Container orchestration (Kubernetes liveness probes)
+
+## Monitoring
+
+Add monitoring to your production deployment:
+
+```typescript
+// src/app.ts
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Server is running',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    memory: process.memoryUsage(),
+  });
+});
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Frontend can't connect to backend">
+    1. Check `VITE_API_BASE_URL` is set to your backend URL
+    2. Verify CORS is configured: `CORS_ORIGIN` matches your frontend domain
+    3. Check browser console for CORS errors
+    4. Test backend health check: `curl https://api.your-app.com/health`
+  </Accordion>
+
+  <Accordion title="Backend crashes in production">
+    1. Check logs: `pm2 logs` or platform logs
+    2. Verify all environment variables are set
+    3. Check `NODE_ENV=production`
+    4. Ensure `WORKERS` is configured correctly
+    5. Review cluster restart logs
+  </Accordion>
+
+  <Accordion title="Build fails">
+    1. Verify Node.js version (20+)
+    2. Clear node_modules: `rm -rf node_modules && pnpm install`
+    3. Check TypeScript errors: `pnpm tsc --noEmit`
+    4. Review build logs for specific errors
+  </Accordion>
+
+  <Accordion title="High memory usage">
+    1. Reduce workers: `WORKERS=2`
+    2. Add memory limit to PM2: `pm2 start dist/server.js --max-memory-restart 500M`
+    3. Monitor with `pm2 monit`
+    4. Consider vertical scaling (more RAM)
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CI/CD Setup" icon="circle-check">
+    Set up automated deployments with GitHub Actions or GitLab CI
+  </Card>
+  
+  <Card title="Database Integration" icon="database">
+    Add PostgreSQL, MongoDB, or your preferred database
+  </Card>
+  
+  <Card title="Caching" icon="bolt">
+    Implement Redis for session storage and API caching
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    Add Sentry for error tracking and analytics
+  </Card>
+</CardGroup>

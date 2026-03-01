@@ -1,0 +1,658 @@
+---
+title: 'Node Package'
+description: 'Complete reference for the TailStack Node.js/Express backend template package'
+icon: 'node'
+---
+
+## Overview
+
+The **TailStack Node** package is a standalone, production-grade backend architecture template built with Express 5 and TypeScript. It provides a secure, scalable, and performance-optimized foundation for building REST APIs, microservices, and backend applications.
+
+<Card title="Ideal For" icon="server">
+  - REST APIs
+  - Microservices
+  - Backend-for-Frontend (BFF) patterns
+  - GraphQL servers
+  - Real-time applications
+</Card>
+
+## Package Information
+
+```json
+{
+  "name": "Server",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.12.1",
+  "license": "ISC"
+}
+```
+
+## Technical Stack
+
+<CardGroup cols={2}>
+  <Card title="Express 5" icon="server">
+    Fast, unopinionated, minimalist web framework
+  </Card>
+  <Card title="TypeScript 5.9" icon="code">
+    Full type safety for backend logic
+  </Card>
+  <Card title="Node Cluster" icon="microchip">
+    Multi-core system utilization
+  </Card>
+  <Card title="TSX" icon="bolt">
+    Modern TypeScript execution engine
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+```bash
+node/
+├── src/
+│   ├── cluster/          # Node cluster implementation
+│   ├── config/           # Configuration management
+│   ├── constant/         # Constants and enums
+│   ├── controller/       # Route controllers
+│   ├── middlewares/      # Express middlewares
+│   ├── routes/           # API route definitions
+│   ├── services/         # Business logic layer
+│   ├── types/            # TypeScript type definitions
+│   ├── app.ts            # Express application setup
+│   └── server.ts         # Server entry point
+├── dist/                 # Compiled JavaScript output
+├── .env.example          # Environment variable template
+├── tsconfig.json         # TypeScript configuration
+└── package.json          # Dependencies and scripts
+```
+
+## Available Scripts
+
+<CodeGroup>
+
+```bash Development Mode
+pnpm dev
+# Runs server with TSX watch mode
+# Automatic reload on file changes
+# Entry point: src/server.ts
+```
+
+```bash Production Build
+pnpm build
+# Compiles TypeScript to JavaScript
+# Output directory: dist/
+```
+
+```bash Start Production Server
+pnpm start
+# Runs compiled JavaScript from dist/
+# Entry point: dist/server.js
+```
+
+```bash Run Tests
+pnpm test
+# Currently not configured
+# Add your test framework here
+```
+
+</CodeGroup>
+
+## Dependencies
+
+### Production Dependencies
+
+<Accordion title="Core Framework">
+  ```json
+  {
+    "express": "^5.2.1"
+  }
+  ```
+  
+  Express 5 with improved performance and modern features.
+</Accordion>
+
+<Accordion title="Security & Middleware">
+  ```json
+  {
+    "cors": "^2.8.6",
+    "cookie-parser": "^1.4.7"
+  }
+  ```
+  
+  - **CORS**: Cross-Origin Resource Sharing configuration
+  - **Cookie Parser**: Parse cookie headers and populate req.cookies
+</Accordion>
+
+<Accordion title="Environment & HTTP">
+  ```json
+  {
+    "dotenv": "^17.2.3",
+    "axios": "^1.7.9"
+  }
+  ```
+  
+  - **Dotenv**: Load environment variables from .env file
+  - **Axios**: HTTP client for external API calls
+</Accordion>
+
+### Development Dependencies
+
+<Accordion title="TypeScript Tooling">
+  ```json
+  {
+    "typescript": "^5.9.3",
+    "tsx": "^4.21.0",
+    "ts-node": "^10.9.2",
+    "@types/node": "^25.0.10",
+    "@types/express": "^5.0.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/dotenv": "^8.2.3"
+  }
+  ```
+  
+  Complete TypeScript support with type definitions.
+</Accordion>
+
+<Accordion title="Development Tools">
+  ```json
+  {
+    "nodemon": "^3.1.11"
+  }
+  ```
+  
+  Automatic server restart on file changes.
+</Accordion>
+
+## TypeScript Configuration
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+### Key Features
+
+- **Path Aliases**: Use `@/` to import from `src/` directory
+- **ES2022 Target**: Modern JavaScript features
+- **Strict Mode**: Maximum type safety
+- **JSON Imports**: Import JSON files directly
+
+## Architecture Patterns
+
+### Layered Architecture
+
+<Steps>
+  <Step title="Routes Layer">
+    Define API endpoints and HTTP methods
+    
+    ```typescript
+    // src/routes/user.routes.ts
+    import { Router } from 'express'
+    import { UserController } from '@/controller/user.controller'
+    
+    const router = Router()
+    router.get('/users', UserController.getAll)
+    router.post('/users', UserController.create)
+    ```
+  </Step>
+  
+  <Step title="Controller Layer">
+    Handle HTTP requests and responses
+    
+    ```typescript
+    // src/controller/user.controller.ts
+    import { Request, Response } from 'express'
+    import { UserService } from '@/services/user.service'
+    
+    export class UserController {
+      static async getAll(req: Request, res: Response) {
+        const users = await UserService.getAllUsers()
+        res.json(users)
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Service Layer">
+    Implement business logic and data access
+    
+    ```typescript
+    // src/services/user.service.ts
+    export class UserService {
+      static async getAllUsers() {
+        // Business logic here
+        return users
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Middleware Stack
+
+The `src/middlewares/` directory contains Express middlewares:
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock">
+    JWT verification and user authentication
+  </Card>
+  <Card title="Validation" icon="check">
+    Request body and parameter validation
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Centralized error handling and formatting
+  </Card>
+  <Card title="Logging" icon="file-lines">
+    Request/response logging
+  </Card>
+</CardGroup>
+
+## Node Cluster Implementation
+
+<Info>
+  The Node package includes cluster support for utilizing multi-core systems and maximizing performance.
+</Info>
+
+Located in `src/cluster/`, the cluster implementation:
+
+- Spawns worker processes for each CPU core
+- Handles worker crashes and restarts
+- Distributes incoming connections
+- Improves throughput and reliability
+
+### Example Cluster Setup
+
+```typescript
+// src/cluster/master.ts
+import cluster from 'cluster'
+import os from 'os'
+
+if (cluster.isPrimary) {
+  const numCPUs = os.cpus().length
+  
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork()
+  }
+  
+  cluster.on('exit', (worker) => {
+    console.log(`Worker ${worker.process.pid} died, restarting...`)
+    cluster.fork()
+  })
+} else {
+  // Start Express server in worker
+  import('./server')
+}
+```
+
+## Security Features
+
+<Accordion title="CORS Configuration">
+  Pre-configured CORS middleware for cross-origin requests:
+  
+  ```typescript
+  import cors from 'cors'
+  
+  app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(','),
+    credentials: true
+  }))
+  ```
+</Accordion>
+
+<Accordion title="Cookie Parsing">
+  Secure cookie parsing and handling:
+  
+  ```typescript
+  import cookieParser from 'cookie-parser'
+  
+  app.use(cookieParser(process.env.COOKIE_SECRET))
+  ```
+</Accordion>
+
+<Accordion title="Environment Variables">
+  Sensitive configuration managed through environment variables:
+  
+  ```bash
+  # .env.example
+  PORT=5000
+  NODE_ENV=development
+  ALLOWED_ORIGINS=http://localhost:5173
+  COOKIE_SECRET=your-secret-here
+  ```
+</Accordion>
+
+## Environment Configuration
+
+### Setting Up Environment Variables
+
+<Steps>
+  <Step title="Copy Template">
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+  
+  <Step title="Configure Variables">
+    Edit `.env` with your configuration:
+    
+    ```bash
+    PORT=5000
+    NODE_ENV=development
+    DATABASE_URL=postgresql://localhost:5432/mydb
+    API_KEY=your-api-key
+    ```
+  </Step>
+  
+  <Step title="Load in Application">
+    ```typescript
+    // src/config/env.ts
+    import dotenv from 'dotenv'
+    dotenv.config()
+    
+    export const config = {
+      port: process.env.PORT || 5000,
+      nodeEnv: process.env.NODE_ENV || 'development'
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Never commit `.env` files to version control. Always use `.env.example` as a template.
+</Warning>
+
+## API Route Organization
+
+### Route Structure
+
+```typescript
+// src/routes/index.ts
+import { Router } from 'express'
+import userRoutes from './user.routes'
+import authRoutes from './auth.routes'
+
+const router = Router()
+
+router.use('/api/users', userRoutes)
+router.use('/api/auth', authRoutes)
+
+export default router
+```
+
+### Route Naming Conventions
+
+<CardGroup cols={2}>
+  <Card title="Resource Routes" icon="folder-tree">
+    `/api/users`
+    `/api/products`
+    `/api/orders`
+  </Card>
+  <Card title="Action Routes" icon="play">
+    `/api/auth/login`
+    `/api/auth/register`
+    `/api/users/:id/activate`
+  </Card>
+</CardGroup>
+
+## Agent Skills
+
+### Pre-configured Skills
+
+<Accordion title="Node.js Backend Patterns">
+  Comprehensive guidance for building production-ready Node.js applications.
+  
+  **Covers:**
+  - Scalable architecture patterns
+  - Express best practices
+  - Error handling strategies
+  - Security implementations
+  - Performance optimization
+  - Testing strategies
+  
+  [Official Documentation](https://skills.sh/wshobson/agents/nodejs-backend-patterns)
+</Accordion>
+
+### Supported AI Agents
+
+- Gemini
+- Claude
+- Codex
+- Cursor
+- OpenCode
+- Trae
+
+## Development Workflow
+
+### Getting Started
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    pnpm install
+    ```
+  </Step>
+  
+  <Step title="Configure Environment">
+    ```bash
+    cp .env.example .env
+    # Edit .env with your configuration
+    ```
+  </Step>
+  
+  <Step title="Start Development Server">
+    ```bash
+    pnpm dev
+    ```
+    Server starts on `http://localhost:5000` (or configured PORT)
+  </Step>
+</Steps>
+
+### Hot Reload
+
+The development server uses TSX watch mode for instant reload:
+
+- Watches all TypeScript files in `src/`
+- Automatically restarts on file changes
+- Preserves console output between restarts
+
+## Production Deployment
+
+### Build Process
+
+<Steps>
+  <Step title="Compile TypeScript">
+    ```bash
+    pnpm build
+    ```
+    Generates JavaScript in `dist/` directory
+  </Step>
+  
+  <Step title="Set Environment">
+    ```bash
+    export NODE_ENV=production
+    ```
+  </Step>
+  
+  <Step title="Start Server">
+    ```bash
+    pnpm start
+    ```
+    Runs compiled code from `dist/server.js`
+  </Step>
+</Steps>
+
+### Production Optimizations
+
+<CardGroup cols={2}>
+  <Card title="Cluster Mode" icon="microchip">
+    Use all CPU cores for maximum throughput
+  </Card>
+  <Card title="Process Manager" icon="gears">
+    Deploy with PM2 or similar for auto-restart
+  </Card>
+  <Card title="Reverse Proxy" icon="network-wired">
+    Use Nginx or similar for load balancing
+  </Card>
+  <Card title="Environment Config" icon="gear">
+    Use production environment variables
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+### Error Handling
+
+```typescript
+// src/middlewares/error.middleware.ts
+import { Request, Response, NextFunction } from 'express'
+
+export const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  console.error(err.stack)
+  
+  res.status(500).json({
+    error: {
+      message: process.env.NODE_ENV === 'production' 
+        ? 'Internal server error' 
+        : err.message
+    }
+  })
+}
+```
+
+### Async Route Handlers
+
+```typescript
+// Wrap async functions to catch errors
+const asyncHandler = (fn: Function) => (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  Promise.resolve(fn(req, res, next)).catch(next)
+}
+
+router.get('/users', asyncHandler(async (req, res) => {
+  const users = await UserService.getAll()
+  res.json(users)
+}))
+```
+
+### Request Validation
+
+```typescript
+// src/middlewares/validate.middleware.ts
+import { Request, Response, NextFunction } from 'express'
+
+export const validateUser = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { email, password } = req.body
+  
+  if (!email || !password) {
+    return res.status(400).json({ 
+      error: 'Email and password are required' 
+    })
+  }
+  
+  next()
+}
+```
+
+## Performance Tips
+
+<Accordion title="Enable Compression">
+  ```typescript
+  import compression from 'compression'
+  app.use(compression())
+  ```
+</Accordion>
+
+<Accordion title="Cache Responses">
+  ```typescript
+  import apicache from 'apicache'
+  const cache = apicache.middleware
+  
+  router.get('/users', cache('5 minutes'), getUsers)
+  ```
+</Accordion>
+
+<Accordion title="Rate Limiting">
+  ```typescript
+  import rateLimit from 'express-rate-limit'
+  
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100
+  })
+  
+  app.use('/api/', limiter)
+  ```
+</Accordion>
+
+## Testing
+
+### Recommended Testing Stack
+
+- **Jest**: Test framework
+- **Supertest**: HTTP assertion library
+- **ts-jest**: TypeScript support for Jest
+
+```bash
+pnpm add -D jest supertest @types/jest @types/supertest ts-jest
+```
+
+### Example Test
+
+```typescript
+// src/__tests__/user.test.ts
+import request from 'supertest'
+import app from '../app'
+
+describe('User API', () => {
+  it('GET /api/users returns users', async () => {
+    const response = await request(app)
+      .get('/api/users')
+      .expect(200)
+    
+    expect(Array.isArray(response.body)).toBe(true)
+  })
+})
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Package" icon="cube" href="/reference/core-package">
+    Learn about the full monorepo architecture
+  </Card>
+  <Card title="React Package" icon="react" href="/reference/react-package">
+    Connect to the frontend application
+  </Card>
+  <Card title="API Documentation" icon="book" href="/api-reference">
+    Document your API endpoints
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/deployment">
+    Deploy your Node.js application
+  </Card>
+</CardGroup>

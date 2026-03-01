@@ -1,0 +1,805 @@
+---
+title: Node.js Backend Template
+description: Backend-only architecture with Express 5, TypeScript, and Node clustering for REST APIs and microservices
+---
+
+## Overview
+
+The **Node Template** is TailStack's backend-only architecture, providing a secure, scalable, and performance-optimized foundation for building REST APIs, GraphQL servers, and microservices.
+
+<Note>
+This template is located at `packages/node/` in the TailStack repository.
+</Note>
+
+## When to Use This Template
+
+Choose the Node template when you:
+
+<CardGroup cols={2}>
+  <Card title="API Development" icon="network-wired">
+    Building:
+    - REST APIs
+    - GraphQL servers
+    - WebSocket services
+    - Real-time APIs
+  </Card>
+  
+  <Card title="Microservices" icon="cubes">
+    Creating:
+    - Independent microservices
+    - Service-oriented architecture
+    - Backend-only utilities
+    - Background workers
+  </Card>
+  
+  <Card title="Separate Frontend" icon="split">
+    When frontend is:
+    - Different repository
+    - Mobile app (iOS/Android)
+    - Multiple frontends
+    - Third-party consumers
+  </Card>
+  
+  <Card title="Headless Services" icon="server">
+    For:
+    - Headless CMS
+    - Data processing services
+    - Webhook handlers
+    - Scheduled jobs/cron
+  </Card>
+</CardGroup>
+
+## Directory Structure
+
+```
+node/
+├── .agent/                          # Gemini agent skills
+│   └── skills/
+│       └── nodejs-backend-patterns/
+├── .claude/                         # Claude agent skills
+│   └── skills/
+│       └── nodejs-backend-patterns/
+├── .cursor/                         # Cursor agent skills
+│   └── skills/
+│       └── nodejs-backend-patterns/
+├── .opencode/                       # OpenCode agent skills
+│   └── skills/
+│       └── nodejs-backend-patterns/
+├── .agents/                         # Trae agent skills
+│   └── skills/
+│       └── nodejs-backend-patterns/
+├── src/
+│   ├── cluster/                     # Node clustering logic
+│   │   └── index.ts                 # Cluster initialization
+│   ├── config/                      # Server configuration
+│   │   └── index.ts                 # Environment config
+│   ├── constant/                    # Application constants
+│   │   └── cluster.ts               # Cluster settings
+│   ├── controller/                  # Request controllers
+│   │   └── weather.controller.ts    # Example controller
+│   ├── middlewares/                 # Express middlewares
+│   │   └── error.middleware.ts      # Error handling
+│   ├── routes/                      # API route definitions
+│   │   ├── index.ts                 # Route aggregator
+│   │   └── weather.routes.ts        # Example routes
+│   ├── services/                    # Business logic services
+│   │   └── weather.service.ts       # Example service
+│   ├── types/                       # TypeScript type definitions
+│   │   └── index.ts                 # Shared types
+│   ├── app.ts                       # Express application setup
+│   └── server.ts                    # Server entry point
+├── .env.example                     # Environment variable template
+├── .gitignore
+├── package.json
+├── tsconfig.json                    # TypeScript configuration
+└── README.md
+```
+
+## Technology Stack
+
+### Core Dependencies
+
+<Tabs>
+  <Tab title="Express Framework">
+    ```json package.json
+    {
+      "dependencies": {
+        "express": "^5.2.1",
+        "@types/express": "^5.0.6"
+      }
+    }
+    ```
+    
+    **Express 5** features:
+    - Promise-based middleware support
+    - Improved error handling
+    - Better TypeScript types
+    - Enhanced security defaults
+    - Removed legacy APIs
+  </Tab>
+  
+  <Tab title="TypeScript">
+    ```json package.json
+    {
+      "devDependencies": {
+        "typescript": "^5.9.3",
+        "@types/node": "^25.0.10",
+        "tsx": "^4.21.0",
+        "ts-node": "^10.9.2"
+      }
+    }
+    ```
+    
+    **TypeScript 5.9** benefits:
+    - Full type safety for APIs
+    - Catch errors at compile time
+    - Better IDE autocomplete
+    - Self-documenting code
+    - Easier refactoring
+  </Tab>
+  
+  <Tab title="Security & Utilities">
+    ```json package.json
+    {
+      "dependencies": {
+        "cors": "^2.8.6",
+        "cookie-parser": "^1.4.7",
+        "dotenv": "^17.2.3",
+        "axios": "^1.7.9"
+      }
+    }
+    ```
+    
+    **CORS:** Cross-origin resource sharing
+    
+    **Cookie Parser:** Parse HTTP cookies
+    
+    **Dotenv:** Environment variable management
+    
+    **Axios:** HTTP client for external APIs
+  </Tab>
+  
+  <Tab title="Development">
+    ```json package.json
+    {
+      "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js"
+      }
+    }
+    ```
+    
+    **TSX:** Fast TypeScript execution
+    - No build step in development
+    - Instant restarts on file changes
+    - Native ESM support
+    - Source map support
+  </Tab>
+</Tabs>
+
+## Node Clustering Architecture
+
+The template uses Node.js clustering to maximize performance across all CPU cores:
+
+### Why Clustering?
+
+<CardGroup cols={2}>
+  <Card title="Multi-Core Utilization" icon="microchip">
+    Node.js is single-threaded by default. Clustering:
+    - Spawns multiple worker processes
+    - One worker per CPU core
+    - Distributes load across workers
+    - Maximizes hardware utilization
+  </Card>
+  
+  <Card title="High Availability" icon="shield-check">
+    Automatic recovery:
+    - Workers restart on crash
+    - Zero-downtime failures
+    - Primary process monitors workers
+    - Configurable restart delay
+  </Card>
+  
+  <Card title="Performance" icon="gauge-high">
+    Real-world benefits:
+    - 4-8x throughput on modern CPUs
+    - Better request concurrency
+    - Load balancing across cores
+    - Reduced latency under load
+  </Card>
+  
+  <Card title="Production Ready" icon="rocket">
+    Enterprise features:
+    - Graceful shutdown handling
+    - SIGTERM/SIGINT support
+    - Worker health monitoring
+    - Production-tested patterns
+  </Card>
+</CardGroup>
+
+### Cluster Implementation
+
+```typescript src/cluster/index.ts
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+import { config } from '../config';
+import { CLUSTER_CONFIG } from '../constant/cluster';
+
+export const initializeCluster = (workerCallback: () => void) => {
+  if (cluster.isPrimary) {
+    // Primary process: spawn workers
+    const numCPUs = config.workers || availableParallelism();
+    
+    console.log(`🚀 Primary process ${process.pid} is running`);
+    console.log(`📡 Environment: ${config.nodeEnv}`);
+    console.log(`🌐 CORS enabled for: ${config.corsOrigin}`);
+    console.log(`⚙️ Spawning ${numCPUs} workers...\n`);
+
+    // Fork workers for each CPU
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    // Auto-restart workers on failure
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`⚠️ Worker ${worker.process.pid} died`);
+      console.log(`   Code: ${code}, Signal: ${signal}`);
+      console.log(`🔄 Restarting in ${CLUSTER_CONFIG.RESTART_DELAY}ms...`);
+      
+      setTimeout(() => {
+        console.log('🔄 Spawning new worker...');
+        cluster.fork();
+      }, CLUSTER_CONFIG.RESTART_DELAY);
+    });
+  } else {
+    // Worker process: run the callback
+    workerCallback();
+  }
+};
+```
+
+<Note>
+**availableParallelism():** Returns the number of available CPU cores, accounting for CPU affinity and cgroup limits in containerized environments.
+</Note>
+
+### Cluster Configuration
+
+```typescript src/constant/cluster.ts
+export const CLUSTER_CONFIG = {
+  RESTART_DELAY: 1000,        // 1 second delay before restart
+  MAX_RESTARTS: 10,           // Maximum restarts per hour
+  HEALTH_CHECK_INTERVAL: 30000 // 30 seconds
+};
+```
+
+## Server Architecture
+
+### Entry Point
+
+```typescript src/server.ts
+import app from './app';
+import { config } from './config';
+import { initializeCluster } from './cluster';
+
+initializeCluster(() => {
+  const server = app.listen(config.port, () => {
+    console.log(`✅ Worker ${process.pid} started on port ${config.port}`);
+  });
+
+  // Graceful shutdown handling
+  const gracefulShutdown = (signal: string) => {
+    console.log(`${signal} signal received`);
+    console.log(`Closing HTTP server for worker ${process.pid}`);
+    
+    server.close(() => {
+      console.log(`HTTP server closed for worker ${process.pid}`);
+      process.exit(0);
+    });
+    
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.error('Forcing shutdown...');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+});
+```
+
+### Express Application Setup
+
+```typescript src/app.ts
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { config } from './config';
+import routes from './routes';
+import { errorHandler } from './middlewares/error.middleware';
+
+const app = express();
+
+// Security middleware
+app.use(cors({
+  origin: config.corsOrigin,
+  credentials: true
+}));
+
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// API routes
+app.use('/api', routes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    worker: process.pid,
+    uptime: process.uptime()
+  });
+});
+
+// Error handling (must be last)
+app.use(errorHandler);
+
+export default app;
+```
+
+## Layered Architecture
+
+The template follows a clean, layered architecture:
+
+<Tabs>
+  <Tab title="Routes Layer">
+    ### API Routes
+    
+    Define HTTP endpoints and map them to controllers.
+    
+    ```typescript src/routes/weather.routes.ts
+    import { Router } from 'express';
+    import { WeatherController } from '../controller/weather.controller';
+    
+    const router = Router();
+    const weatherController = new WeatherController();
+    
+    router.get('/', weatherController.getCurrentWeather);
+    router.get('/forecast', weatherController.getForecast);
+    router.get('/history/:city', weatherController.getHistory);
+    
+    export default router;
+    ```
+    
+    ```typescript src/routes/index.ts
+    import { Router } from 'express';
+    import weatherRoutes from './weather.routes';
+    
+    const router = Router();
+    
+    router.use('/weather', weatherRoutes);
+    // Add more routes here
+    
+    export default router;
+    ```
+  </Tab>
+  
+  <Tab title="Controller Layer">
+    ### Request Controllers
+    
+    Handle HTTP requests, validate input, call services.
+    
+    ```typescript src/controller/weather.controller.ts
+    import { Request, Response, NextFunction } from 'express';
+    import { WeatherService } from '../services/weather.service';
+    
+    export class WeatherController {
+      private weatherService: WeatherService;
+      
+      constructor() {
+        this.weatherService = new WeatherService();
+      }
+      
+      getCurrentWeather = async (
+        req: Request, 
+        res: Response, 
+        next: NextFunction
+      ) => {
+        try {
+          const { city } = req.query;
+          
+          if (!city || typeof city !== 'string') {
+            return res.status(400).json({ 
+              error: 'City parameter required' 
+            });
+          }
+          
+          const weather = await this.weatherService.getWeather(city);
+          res.json(weather);
+        } catch (error) {
+          next(error);
+        }
+      };
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Service Layer">
+    ### Business Logic
+    
+    Implement core business logic, call external APIs.
+    
+    ```typescript src/services/weather.service.ts
+    import axios from 'axios';
+    import { config } from '../config';
+    
+    export class WeatherService {
+      private apiKey: string;
+      private baseUrl: string;
+      
+      constructor() {
+        this.apiKey = config.weatherApiKey;
+        this.baseUrl = 'https://api.openweathermap.org/data/2.5';
+      }
+      
+      async getWeather(city: string) {
+        const response = await axios.get(`${this.baseUrl}/weather`, {
+          params: {
+            q: city,
+            appid: this.apiKey,
+            units: 'metric'
+          }
+        });
+        
+        return {
+          city: response.data.name,
+          temperature: response.data.main.temp,
+          description: response.data.weather[0].description,
+          humidity: response.data.main.humidity,
+          windSpeed: response.data.wind.speed
+        };
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Middleware Layer">
+    ### Error Handling
+    
+    Centralized error handling and logging.
+    
+    ```typescript src/middlewares/error.middleware.ts
+    import { Request, Response, NextFunction } from 'express';
+    
+    interface AppError extends Error {
+      status?: number;
+      isOperational?: boolean;
+    }
+    
+    export const errorHandler = (
+      err: AppError,
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      const status = err.status || 500;
+      const message = err.message || 'Internal Server Error';
+      
+      console.error(`[ERROR] ${status}: ${message}`);
+      console.error(err.stack);
+      
+      res.status(status).json({
+        error: {
+          message,
+          status,
+          timestamp: new Date().toISOString(),
+          path: req.path
+        }
+      });
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration Management
+
+### Environment Variables
+
+```typescript src/config/index.ts
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  // Server
+  nodeEnv: process.env.NODE_ENV || 'development',
+  port: parseInt(process.env.PORT || '5000', 10),
+  
+  // Clustering
+  workers: process.env.WORKERS 
+    ? parseInt(process.env.WORKERS, 10) 
+    : undefined,
+  
+  // CORS
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  
+  // External APIs
+  weatherApiKey: process.env.WEATHER_API_KEY || '',
+  
+  // Database (example)
+  databaseUrl: process.env.DATABASE_URL || '',
+};
+```
+
+### Environment Template
+
+```bash .env.example
+# Server Configuration
+NODE_ENV=development
+PORT=5000
+
+# Clustering
+WORKERS=4
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# External API Keys
+WEATHER_API_KEY=your_api_key_here
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
+```
+
+## Agent Skills
+
+The Node template includes **one specialized agent skill**:
+
+### Node.js Backend Patterns
+
+**Location:** `.agent/skills/nodejs-backend-patterns/`
+
+<CardGroup cols={2}>
+  <Card title="Architecture Patterns" icon="diagram-project">
+    - Layered architecture
+    - Repository pattern
+    - Dependency injection
+    - Service-oriented design
+    - SOLID principles
+  </Card>
+  
+  <Card title="Error Handling" icon="triangle-exclamation">
+    - Centralized error middleware
+    - Custom error classes
+    - Operational vs programmer errors
+    - Error logging strategies
+    - Graceful degradation
+  </Card>
+  
+  <Card title="Security" icon="lock">
+    - Input validation
+    - SQL injection prevention
+    - XSS protection
+    - CSRF tokens
+    - Rate limiting
+    - Helmet.js integration
+  </Card>
+  
+  <Card title="Performance" icon="bolt">
+    - Clustering strategies
+    - Caching with Redis
+    - Database connection pooling
+    - Query optimization
+    - Load balancing
+  </Card>
+</CardGroup>
+
+## Development Workflow
+
+### Starting Development
+
+```bash
+pnpm install
+pnpm dev
+```
+
+TSX watch mode:
+- Automatic restart on file changes
+- Fast compilation (no build step)
+- Source map support for debugging
+- All cluster workers restart together
+
+### Building for Production
+
+```bash
+pnpm build
+```
+
+TypeScript compiler outputs to `dist/`:
+- Preserves directory structure
+- Generates declaration files (`.d.ts`)
+- Source maps for production debugging
+- Type checking enforced
+
+### Running Production Build
+
+```bash
+pnpm start
+```
+
+Runs `node dist/server.js` with all cluster workers.
+
+## Testing Strategies
+
+<Tabs>
+  <Tab title="Unit Tests">
+    Test individual services and utilities:
+    
+    ```typescript __tests__/services/weather.service.test.ts
+    import { WeatherService } from '../../src/services/weather.service';
+    
+    describe('WeatherService', () => {
+      let service: WeatherService;
+      
+      beforeEach(() => {
+        service = new WeatherService();
+      });
+      
+      it('should fetch weather for a city', async () => {
+        const weather = await service.getWeather('London');
+        expect(weather).toHaveProperty('temperature');
+        expect(weather.city).toBe('London');
+      });
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Integration Tests">
+    Test API endpoints:
+    
+    ```typescript __tests__/routes/weather.routes.test.ts
+    import request from 'supertest';
+    import app from '../../src/app';
+    
+    describe('Weather API', () => {
+      it('GET /api/weather returns weather data', async () => {
+        const response = await request(app)
+          .get('/api/weather')
+          .query({ city: 'London' })
+          .expect(200);
+        
+        expect(response.body).toHaveProperty('temperature');
+      });
+      
+      it('GET /api/weather returns 400 without city', async () => {
+        await request(app)
+          .get('/api/weather')
+          .expect(400);
+      });
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Deployment Options
+
+<Tabs>
+  <Tab title="Docker">
+    ### Containerized Deployment
+    
+    ```dockerfile Dockerfile
+    FROM node:20-alpine
+    
+    WORKDIR /app
+    
+    COPY package*.json pnpm-lock.yaml ./
+    RUN npm install -g pnpm && pnpm install --frozen-lockfile
+    
+    COPY . .
+    RUN pnpm build
+    
+    EXPOSE 5000
+    
+    CMD ["pnpm", "start"]
+    ```
+    
+    ```yaml docker-compose.yml
+    version: '3.8'
+    services:
+      api:
+        build: .
+        ports:
+          - "5000:5000"
+        environment:
+          - NODE_ENV=production
+          - WORKERS=4
+        restart: unless-stopped
+    ```
+  </Tab>
+  
+  <Tab title="Platform-as-a-Service">
+    ### Heroku, Railway, Render
+    
+    **Heroku:**
+    ```bash
+    heroku create my-api
+    git push heroku main
+    heroku config:set NODE_ENV=production
+    ```
+    
+    **Railway:**
+    ```json railway.json
+    {
+      "build": {
+        "builder": "NIXPACKS",
+        "buildCommand": "pnpm build"
+      },
+      "deploy": {
+        "startCommand": "pnpm start",
+        "restartPolicyType": "ON_FAILURE"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="VPS / Cloud">
+    ### AWS, GCP, DigitalOcean
+    
+    **Using PM2:**
+    ```bash
+    pnpm build
+    pm2 start dist/server.js -i max --name api
+    pm2 save
+    pm2 startup
+    ```
+    
+    **Systemd Service:**
+    ```ini /etc/systemd/system/api.service
+    [Unit]
+    Description=Node API Server
+    After=network.target
+    
+    [Service]
+    Type=simple
+    User=node
+    WorkingDirectory=/app
+    ExecStart=/usr/bin/node dist/server.js
+    Restart=on-failure
+    
+    [Install]
+    WantedBy=multi-user.target
+    ```
+  </Tab>
+</Tabs>
+
+## Comparison with Core Monorepo
+
+| Feature | Node Template | Core Monorepo |
+|---------|---------------|---------------|
+| **Frontend** | ❌ None | ✅ React included |
+| **Backend** | ✅ Express + TS | ✅ Express + TS |
+| **Clustering** | ✅ Full support | ✅ Full support |
+| **Complexity** | Lower | Higher |
+| **Use Case** | APIs/Services | Full-stack apps |
+| **Skills** | 1 skill | 3 skills |
+| **Deployment** | Backend-only | Full-stack or split |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Monorepo" icon="layer-group" href="/architecture/core-monorepo">
+    Compare with full-stack architecture
+  </Card>
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Explore detailed directory layout
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Set up your first Node.js API
+  </Card>
+  <Card title="Deployment Guide" icon="cloud" href="/deployment">
+    Deploy your backend service
+  </Card>
+</CardGroup>

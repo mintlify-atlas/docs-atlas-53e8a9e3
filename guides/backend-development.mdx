@@ -1,0 +1,728 @@
+---
+title: Backend Development Guide
+description: Build scalable Express APIs with TypeScript, controllers, services, and Node.js clustering
+---
+
+The Core template's backend provides a production-ready Express.js server with TypeScript, clustering for performance, and a clean layered architecture. This guide shows you how to build APIs using the established patterns.
+
+## Tech Stack
+
+The backend uses enterprise-grade technologies:
+
+- **Express.js 5** - Fast, minimal web framework
+- **TypeScript** - Full type safety
+- **Node.js Clustering** - Multi-core performance
+- **Axios** - HTTP client for external APIs
+- **CORS** - Cross-origin resource sharing
+- **dotenv** - Environment configuration
+- **tsx** - TypeScript execution with hot reload
+
+## Architecture Overview
+
+The backend follows a layered architecture pattern:
+
+```
+Request → Routes → Controllers → Services → External APIs/Database
+                                    ↓
+                              Response
+```
+
+Each layer has a specific responsibility:
+
+- **Routes**: Define API endpoints and HTTP methods
+- **Controllers**: Handle requests, validate input, send responses
+- **Services**: Contain business logic and external integrations
+- **Types**: Define TypeScript interfaces and types
+- **Middleware**: Process requests before they reach controllers
+- **Config**: Centralize configuration and environment variables
+
+## Project Structure
+
+```bash
+packages/core/source/Server/
+├── src/
+│   ├── routes/              # API route definitions
+│   │   ├── index.ts         # Main router
+│   │   └── weather.routes.ts
+│   ├── controller/          # Request handlers
+│   │   └── weather.controller.ts
+│   ├── services/            # Business logic
+│   │   └── weather.service.ts
+│   ├── types/               # TypeScript types
+│   │   └── weather.ts
+│   ├── middlewares/         # Express middleware
+│   │   └── cors.ts
+│   ├── config/              # Configuration
+│   │   ├── index.ts
+│   │   └── weather.ts
+│   ├── cluster/             # Clustering system
+│   │   └── index.ts
+│   ├── constant/            # Constants
+│   │   └── cluster.ts
+│   ├── app.ts               # Express app setup
+│   └── server.ts            # Server entry point
+├── .env.example
+└── package.json
+```
+
+## Creating API Routes
+
+### Step 1: Define Routes
+
+Routes map HTTP endpoints to controller methods.
+
+`packages/core/source/Server/src/routes/weather.routes.ts:1`
+
+```typescript
+import { Router } from 'express';
+import { WeatherController } from '../controller/weather.controller';
+
+const router = Router();
+
+router.get('/location', WeatherController.getWeatherByLocation);
+router.get('/coordinates', WeatherController.getWeatherByCoordinates);
+
+export default router;
+```
+
+### Step 2: Register Routes
+
+Add your routes to the main router:
+
+`packages/core/source/Server/src/routes/index.ts:1`
+
+```typescript
+import { Router } from 'express';
+import weatherRoutes from './weather.routes';
+
+const router = Router();
+
+router.use('/weather', weatherRoutes);
+
+export default router;
+```
+
+This creates endpoints at:
+- `GET /api/weather/location?location=London`
+- `GET /api/weather/coordinates?lat=51.5074&lon=-0.1278`
+
+### Step 3: Mount in App
+
+Routes are mounted in `src/app.ts:15`:
+
+```typescript
+import routes from './routes';
+
+app.use('/api', routes);
+```
+
+## Building Controllers
+
+Controllers handle HTTP requests and responses. They validate input, call services, and return JSON.
+
+`packages/core/source/Server/src/controller/weather.controller.ts:4`
+
+```typescript
+import { Request, Response } from 'express';
+import { WeatherService } from '../services/weather.service';
+
+export class WeatherController {
+  /**
+   * Get weather by location name
+   */
+  static async getWeatherByLocation(req: Request, res: Response): Promise<void> {
+    try {
+      const { location } = req.query;
+
+      // Validate input
+      if (!location || typeof location !== 'string') {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Location parameter is required',
+        });
+        return;
+      }
+
+      // Call service
+      const weatherData = await WeatherService.getWeatherByLocation(location);
+      
+      // Send response
+      res.json(weatherData);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage,
+      });
+    }
+  }
+
+  /**
+   * Get weather by coordinates
+   */
+  static async getWeatherByCoordinates(req: Request, res: Response): Promise<void> {
+    try {
+      const { lat, lon } = req.query;
+
+      // Validate input
+      if (!lat || !lon) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Both lat and lon parameters are required',
+        });
+        return;
+      }
+
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lon as string);
+
+      if (isNaN(latitude) || isNaN(longitude)) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Lat and lon must be valid numbers',
+        });
+        return;
+      }
+
+      const weatherData = await WeatherService.getWeatherByCoordinates(latitude, longitude);
+      res.json(weatherData);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage,
+      });
+    }
+  }
+}
+```
+
+### Controller Best Practices
+
+<Steps>
+  <Step title="Validation First">
+    Always validate input before processing:
+    
+    ```typescript
+    if (!location || typeof location !== 'string') {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Location parameter is required',
+      });
+      return;
+    }
+    ```
+  </Step>
+
+  <Step title="Error Handling">
+    Wrap logic in try-catch blocks:
+    
+    ```typescript
+    try {
+      const data = await Service.getData();
+      res.json(data);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage,
+      });
+    }
+    ```
+  </Step>
+
+  <Step title="Delegate Business Logic">
+    Controllers should be thin - delegate to services:
+    
+    ```typescript
+    // Good - controller delegates to service
+    const weatherData = await WeatherService.getWeatherByLocation(location);
+    
+    // Bad - business logic in controller
+    const response = await axios.get(`https://api.example.com/${location}`);
+    const transformed = transformData(response.data);
+    ```
+  </Step>
+
+  <Step title="Type Safety">
+    Use TypeScript types for type safety:
+    
+    ```typescript
+    static async getWeatherByLocation(req: Request, res: Response): Promise<void> {
+      const weatherData: WeatherData = await WeatherService.getWeatherByLocation(location);
+      res.json(weatherData);
+    }
+    ```
+  </Step>
+</Steps>
+
+## Writing Services
+
+Services contain business logic and integrate with external APIs or databases.
+
+`packages/core/source/Server/src/services/weather.service.ts:5`
+
+```typescript
+import axios from 'axios';
+import { WeatherData } from '../types/weather';
+import { WEATHER_CONFIG } from '../config/weather';
+
+export class WeatherService {
+  /**
+   * Fetch weather data by location name
+   */
+  static async getWeatherByLocation(location: string): Promise<WeatherData> {
+    try {
+      const response = await axios.get(
+        `${WEATHER_CONFIG.BASE_URL}/${encodeURIComponent(location)}`,
+        {
+          params: {
+            format: 'j1', // JSON format
+          },
+          headers: {
+            'User-Agent': 'TailStack Weather App',
+          },
+        }
+      );
+
+      const data = response.data;
+      
+      // Transform external API response to our format
+      const current = data.current_condition[0];
+      const locationData = data.nearest_area[0];
+      
+      return {
+        location: {
+          name: locationData.areaName[0].value,
+          region: locationData.region[0].value,
+          country: locationData.country[0].value,
+          lat: parseFloat(locationData.latitude),
+          lon: parseFloat(locationData.longitude),
+          localtime: current.localObsDateTime || new Date().toISOString(),
+        },
+        current: {
+          temp_c: parseFloat(current.temp_C),
+          temp_f: parseFloat(current.temp_F),
+          condition: {
+            text: current.weatherDesc[0].value,
+            icon: `https://wttr.in/${current.weatherCode}.png`,
+          },
+          humidity: parseFloat(current.humidity),
+          wind_kph: parseFloat(current.windspeedKmph),
+          wind_dir: current.winddir16Point,
+          pressure_mb: parseFloat(current.pressure),
+          feelslike_c: parseFloat(current.FeelsLikeC),
+          feelslike_f: parseFloat(current.FeelsLikeF),
+          uv: parseFloat(current.uvIndex || '0'),
+          vis_km: parseFloat(current.visibility || '0'),
+        },
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          error.response?.status === 404
+            ? 'Location not found. Please try a different location.'
+            : `Failed to fetch weather data: ${error.message}`
+        );
+      }
+      throw new Error('An unexpected error occurred while fetching weather data');
+    }
+  }
+
+  /**
+   * Fetch weather data by coordinates
+   */
+  static async getWeatherByCoordinates(lat: number, lon: number): Promise<WeatherData> {
+    try {
+      const response = await axios.get(
+        `${WEATHER_CONFIG.BASE_URL}/${lat},${lon}`,
+        {
+          params: { format: 'j1' },
+          headers: { 'User-Agent': 'TailStack Weather App' },
+        }
+      );
+
+      // Transform and return data
+      return this.transformWeatherData(response.data);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          error.response?.status === 404
+            ? 'Location not found. Please try different coordinates.'
+            : `Failed to fetch weather data: ${error.message}`
+        );
+      }
+      throw new Error('An unexpected error occurred while fetching weather data');
+    }
+  }
+}
+```
+
+### Service Patterns
+
+<Tabs>
+  <Tab title="External API">
+    ```typescript
+    export class WeatherService {
+      static async getData(location: string): Promise<WeatherData> {
+        const response = await axios.get(
+          `${API_URL}/${location}`,
+          { params: { apiKey: API_KEY } }
+        );
+        return this.transform(response.data);
+      }
+      
+      private static transform(data: any): WeatherData {
+        // Transform external format to internal format
+        return { /* ... */ };
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Database">
+    ```typescript
+    export class UserService {
+      static async getUser(id: string): Promise<User> {
+        const user = await db.users.findById(id);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        return user;
+      }
+      
+      static async createUser(data: CreateUserDto): Promise<User> {
+        const user = await db.users.create(data);
+        return user;
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Business Logic">
+    ```typescript
+    export class OrderService {
+      static async calculateTotal(items: CartItem[]): Promise<number> {
+        const subtotal = items.reduce((sum, item) => 
+          sum + (item.price * item.quantity), 0
+        );
+        
+        const tax = subtotal * TAX_RATE;
+        const shipping = this.calculateShipping(items);
+        
+        return subtotal + tax + shipping;
+      }
+      
+      private static calculateShipping(items: CartItem[]): number {
+        // Shipping logic
+        return items.length > 5 ? 0 : 9.99;
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Clustering System
+
+The backend uses Node.js clustering for production performance:
+
+`packages/core/source/Server/src/cluster/index.ts:1`
+
+```typescript
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+import { config } from '../config';
+import { CLUSTER_CONFIG } from '../constant/cluster';
+
+export const initializeCluster = (workerCallback: () => void) => {
+  if (cluster.isPrimary) {
+    const numCPUs = config.workers || availableParallelism();
+    
+    console.log(`🚀 Primary process ${process.pid} is running`);
+    console.log(`📡 Environment: ${config.nodeEnv}`);
+    console.log(`🌐 CORS enabled for: ${config.corsOrigin}`);
+    console.log(`⚙️ Spawning ${numCPUs} workers for maximum performance...\n`);
+
+    // Fork workers
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    // Restart failed workers
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`⚠️ Worker ${worker.process.pid} died (code: ${code}, signal: ${signal}).`);
+      console.log(`🔄 Restarting in ${CLUSTER_CONFIG.RESTART_DELAY}ms...`);
+      
+      setTimeout(() => {
+        cluster.fork();
+      }, CLUSTER_CONFIG.RESTART_DELAY);
+    });
+  } else {
+    // Worker process runs the server
+    workerCallback();
+  }
+};
+```
+
+Used in `src/server.ts:5`:
+
+```typescript
+import app from './app';
+import { config } from './config';
+import { initializeCluster } from './cluster';
+
+initializeCluster(() => {
+  const server = app.listen(config.port, () => {
+    console.log(`✅ Worker ${process.pid} started on port ${config.port}`);
+  });
+
+  // Graceful shutdown
+  const gracefulShutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server for worker ${process.pid}`);
+    server.close(() => {
+      console.log(`HTTP server closed for worker ${process.pid}`);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+});
+```
+
+<Warning>
+  The cluster system spawns one worker per CPU core by default. In development, you can set `WORKERS=1` to use a single process for easier debugging.
+</Warning>
+
+## Configuration
+
+Centralize configuration in `src/config/index.ts:1`:
+
+```typescript
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  port: process.env.PORT || 5000,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  workers: parseInt(process.env.WORKERS || '0', 10),
+};
+```
+
+### Environment Variables
+
+Create `.env` file in `packages/core/source/Server/`:
+
+```bash
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# Cluster Configuration
+WORKERS=0  # 0 = auto-detect CPU cores
+
+# API Keys (if needed)
+WEATHER_API_KEY=your-api-key
+DATABASE_URL=postgresql://localhost:5432/mydb
+```
+
+## Middleware
+
+The app uses middleware for cross-cutting concerns:
+
+`packages/core/source/Server/src/app.ts:1`
+
+```typescript
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middlewares/cors';
+import routes from './routes';
+
+const app = express();
+
+// Middlewares
+app.use(corsMiddleware);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use('/api', routes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.path} not found`,
+  });
+});
+
+export default app;
+```
+
+### CORS Middleware
+
+`packages/core/source/Server/src/middlewares/cors.ts`
+
+```typescript
+import cors from 'cors';
+import { config } from '../config';
+
+export const corsMiddleware = cors({
+  origin: config.corsOrigin,
+  credentials: true,
+});
+```
+
+## Development Commands
+
+```bash
+# Start development server with hot reload
+pnpm dev
+
+# Build TypeScript to JavaScript
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+Package.json scripts:
+
+```json
+{
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+}
+```
+
+## Creating a Complete Feature
+
+Let's create a complete feature from scratch:
+
+<Steps>
+  <Step title="Create Types">
+    ```typescript
+    // src/types/user.ts
+    export interface User {
+      id: string;
+      name: string;
+      email: string;
+      createdAt: string;
+    }
+    
+    export interface CreateUserDto {
+      name: string;
+      email: string;
+    }
+    ```
+  </Step>
+
+  <Step title="Create Service">
+    ```typescript
+    // src/services/user.service.ts
+    import { User, CreateUserDto } from '../types/user';
+    
+    export class UserService {
+      static async getUser(id: string): Promise<User> {
+        // Fetch from database
+        return { id, name: 'John', email: 'john@example.com', createdAt: new Date().toISOString() };
+      }
+      
+      static async createUser(data: CreateUserDto): Promise<User> {
+        // Create in database
+        return { ...data, id: '123', createdAt: new Date().toISOString() };
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Create Controller">
+    ```typescript
+    // src/controller/user.controller.ts
+    import { Request, Response } from 'express';
+    import { UserService } from '../services/user.service';
+    
+    export class UserController {
+      static async getUser(req: Request, res: Response): Promise<void> {
+        try {
+          const { id } = req.params;
+          const user = await UserService.getUser(id);
+          res.json(user);
+        } catch (error) {
+          res.status(500).json({ error: 'Failed to fetch user' });
+        }
+      }
+      
+      static async createUser(req: Request, res: Response): Promise<void> {
+        try {
+          const user = await UserService.createUser(req.body);
+          res.status(201).json(user);
+        } catch (error) {
+          res.status(500).json({ error: 'Failed to create user' });
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Create Routes">
+    ```typescript
+    // src/routes/user.routes.ts
+    import { Router } from 'express';
+    import { UserController } from '../controller/user.controller';
+    
+    const router = Router();
+    
+    router.get('/:id', UserController.getUser);
+    router.post('/', UserController.createUser);
+    
+    export default router;
+    ```
+  </Step>
+
+  <Step title="Register Routes">
+    ```typescript
+    // src/routes/index.ts
+    import { Router } from 'express';
+    import weatherRoutes from './weather.routes';
+    import userRoutes from './user.routes';
+    
+    const router = Router();
+    
+    router.use('/weather', weatherRoutes);
+    router.use('/users', userRoutes);
+    
+    export default router;
+    ```
+  </Step>
+</Steps>
+
+Your new endpoints:
+- `GET /api/users/:id`
+- `POST /api/users`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend Development" icon="react" href="/guides/frontend-development">
+    Build a frontend to consume your API
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy your backend to production
+  </Card>
+</CardGroup>

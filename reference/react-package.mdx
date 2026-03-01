@@ -1,0 +1,464 @@
+---
+title: 'React Package'
+description: 'Complete reference for the TailStack React frontend template package'
+icon: 'react'
+---
+
+## Overview
+
+The **TailStack React** package is a standalone, production-grade frontend architecture template that provides a modern, high-performance foundation for building client-side applications. It leverages cutting-edge technologies including Vite 6, React 19, Tailwind CSS 4, and Shadcn UI.
+
+<Card title="Perfect For" icon="lightbulb">
+  - Single-page applications (SPAs)
+  - Progressive web apps (PWAs)
+  - Client-side rendered dashboards
+  - Modern UI-focused projects
+</Card>
+
+## Package Information
+
+```json
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}
+```
+
+## Technical Stack
+
+<CardGroup cols={2}>
+  <Card title="Vite 6" icon="bolt">
+    Lightning-fast build tool with instant HMR and optimized production builds
+  </Card>
+  <Card title="React 19" icon="react">
+    Latest React with improved performance and new features
+  </Card>
+  <Card title="Tailwind CSS 4" icon="palette">
+    New engine for better performance and developer experience
+  </Card>
+  <Card title="TypeScript 5.9" icon="code">
+    Full type safety with the latest TypeScript features
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+```bash
+react/
+├── src/
+│   ├── api/              # API client and service layer
+│   ├── components/       # Reusable UI components
+│   │   ├── docs/         # Documentation components
+│   │   ├── home/         # Home page components
+│   │   ├── layout/       # Layout components
+│   │   ├── ui/           # Shadcn UI components
+│   │   └── weather/      # Weather demo components
+│   ├── config/           # Application configuration
+│   ├── constants/        # Constants and enums
+│   ├── hooks/            # Custom React hooks
+│   ├── lib/              # Utility libraries
+│   ├── pages/            # Application pages/screens
+│   │   └── docs/         # Documentation pages
+│   ├── types/            # TypeScript type definitions
+│   ├── App.tsx           # Root application component
+│   └── main.tsx          # Application entry point
+├── public/               # Static assets
+├── vite.config.ts        # Vite configuration
+├── tsconfig.json         # TypeScript configuration
+└── package.json          # Dependencies and scripts
+```
+
+## Available Scripts
+
+<CodeGroup>
+
+```bash Development Server
+pnpm dev
+# Starts Vite development server on http://localhost:5173
+# Features hot module replacement (HMR)
+```
+
+```bash Production Build
+pnpm build
+# Runs TypeScript compilation and creates optimized production build
+# Output directory: dist/
+```
+
+```bash Lint Code
+pnpm lint
+# Runs ESLint to check code quality
+```
+
+```bash Preview Production Build
+pnpm preview
+# Serves the production build locally for testing
+```
+
+</CodeGroup>
+
+## Dependencies
+
+### Core Libraries
+
+<Accordion title="React & Routing">
+  ```json
+  {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.12.0"
+  }
+  ```
+  
+  - React 19 with improved performance and concurrent features
+  - React Router 7 for declarative routing
+</Accordion>
+
+<Accordion title="Styling & UI">
+  ```json
+  {
+    "tailwindcss": "^4.1.18",
+    "@tailwindcss/vite": "^4.1.18",
+    "lucide-react": "^0.562.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.4.0"
+  }
+  ```
+  
+  - Tailwind CSS 4 with new high-performance engine
+  - Lucide React for beautiful icons
+  - CVA for component variant management
+  - Utility functions for className handling
+</Accordion>
+
+<Accordion title="Utilities">
+  ```json
+  {
+    "axios": "^1.7.9",
+    "sonner": "^2.0.7"
+  }
+  ```
+  
+  - Axios for HTTP requests
+  - Sonner for elegant toast notifications
+</Accordion>
+
+### Development Dependencies
+
+<Accordion title="Build Tools">
+  ```json
+  {
+    "vite": "^7.2.4",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "~5.9.3"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Linting & Types">
+  ```json
+  {
+    "eslint": "^9.39.1",
+    "@eslint/js": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "typescript-eslint": "^8.46.4",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/node": "^24.10.1"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Additional Tools">
+  ```json
+  {
+    "globals": "^16.5.0",
+    "tw-animate-css": "^1.4.0"
+  }
+  ```
+</Accordion>
+
+## Vite Configuration
+
+```typescript
+import path from "path"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig } from "vite"
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+})
+```
+
+### Key Features
+
+- **Path Aliases**: Use `@/` to import from `src/` directory
+- **React Plugin**: Fast refresh and JSX runtime
+- **Tailwind Plugin**: Native Tailwind CSS 4 integration
+
+## Component Architecture
+
+### Shadcn UI Components
+
+The package includes pre-built, accessible UI components from Shadcn UI in the `src/components/ui/` directory.
+
+<Note>
+  Shadcn components are not installed as dependencies. They're copied into your project, giving you full control to customize them.
+</Note>
+
+### Component Categories
+
+<CardGroup cols={2}>
+  <Card title="UI Components" icon="layer-group">
+    Reusable Shadcn UI primitives in `components/ui/`
+  </Card>
+  <Card title="Layout Components" icon="table-layout">
+    Page layouts and structural elements in `components/layout/`
+  </Card>
+  <Card title="Feature Components" icon="puzzle-piece">
+    Domain-specific components (weather, docs, home)
+  </Card>
+  <Card title="Page Components" icon="file">
+    Top-level page components in `pages/`
+  </Card>
+</CardGroup>
+
+## Custom Hooks
+
+The `src/hooks/` directory contains reusable React hooks for common functionality:
+
+- State management hooks
+- API data fetching hooks
+- Browser API hooks
+- Custom effect hooks
+
+## API Layer
+
+The `src/api/` directory provides a structured approach to API communication:
+
+```typescript
+// Example API structure
+api/
+├── client.ts       // Axios instance configuration
+├── endpoints.ts    // API endpoint definitions
+└── services.ts     // Service layer functions
+```
+
+## TypeScript Configuration
+
+Key TypeScript settings for optimal React development:
+
+- **Target**: ES2022 for modern JavaScript features
+- **Module Resolution**: Bundler mode for Vite
+- **Path Aliases**: `@/*` maps to `./src/*`
+- **Strict Mode**: Enabled for maximum type safety
+- **JSX**: React JSX transform
+
+## Weather App Demo
+
+<Info>
+  The React package includes a fully functional multi-page weather application to showcase the architecture and component patterns.
+</Info>
+
+Located in `src/components/weather/`, the demo demonstrates:
+
+- API integration patterns
+- Component composition
+- State management
+- Routing between pages
+- UI component usage
+
+## Agent Skills
+
+### Pre-configured Skills
+
+<Accordion title="Vercel React Best Practices">
+  Comprehensive performance optimization guide for React applications.
+  
+  - 57 rules across 8 categories
+  - Performance optimization patterns
+  - React rendering best practices
+  - Code splitting strategies
+  
+  [Learn more](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)
+</Accordion>
+
+<Accordion title="Tailwind v4 + shadcn/ui Production Stack">
+  AI agent skill for working with Tailwind CSS v4 and Shadcn UI.
+  
+  - Component generation
+  - Styling patterns
+  - Dark mode implementation
+  - Responsive design
+  
+  [Learn more](https://skills.sh/jezweb/claude-skills/tailwind-v4-shadcn)
+</Accordion>
+
+### Supported AI Agents
+
+- Gemini
+- Claude
+- Codex
+- Cursor
+- OpenCode
+- Trae
+
+## Development Workflow
+
+### Getting Started
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    pnpm install
+    ```
+  </Step>
+  
+  <Step title="Start Dev Server">
+    ```bash
+    pnpm dev
+    ```
+    Application available at `http://localhost:5173`
+  </Step>
+  
+  <Step title="Start Building">
+    Begin creating components and pages in the `src/` directory
+  </Step>
+</Steps>
+
+### Hot Module Replacement
+
+Vite provides instant HMR for:
+- React components
+- Tailwind CSS classes
+- TypeScript files
+- Static assets
+
+Changes appear in the browser without full page reload.
+
+## Production Build
+
+### Build Process
+
+```bash
+pnpm build
+```
+
+The build process:
+1. Runs TypeScript compiler (`tsc -b`)
+2. Creates optimized production bundle with Vite
+3. Outputs to `dist/` directory
+
+### Optimization Features
+
+<CardGroup cols={2}>
+  <Card title="Code Splitting" icon="scissors">
+    Automatic route-based code splitting
+  </Card>
+  <Card title="Tree Shaking" icon="tree">
+    Removes unused code from bundle
+  </Card>
+  <Card title="Asset Optimization" icon="image">
+    Optimizes images and static assets
+  </Card>
+  <Card title="CSS Minification" icon="compress">
+    Minifies and optimizes CSS output
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+### Component Organization
+
+```typescript
+// Recommended component structure
+components/
+├── ui/              // Shadcn UI primitives
+├── layout/          // Layout components
+├── [feature]/       // Feature-specific components
+└── shared/          // Shared utility components
+```
+
+### Import Patterns
+
+```typescript
+// Use path aliases
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/useAuth"
+import { API_URL } from "@/config/constants"
+
+// Instead of relative imports
+import { Button } from "../../components/ui/button"
+```
+
+### Type Safety
+
+```typescript
+// Define types for components
+interface ButtonProps {
+  variant: "primary" | "secondary"
+  size: "sm" | "md" | "lg"
+  onClick: () => void
+}
+
+export const Button: React.FC<ButtonProps> = ({ variant, size, onClick }) => {
+  // Component implementation
+}
+```
+
+## Performance Tips
+
+<Accordion title="Code Splitting">
+  Use React.lazy() for route-based code splitting:
+  
+  ```typescript
+  import { lazy } from 'react'
+  
+  const Dashboard = lazy(() => import('./pages/Dashboard'))
+  ```
+</Accordion>
+
+<Accordion title="Memoization">
+  Use React.memo() for expensive components:
+  
+  ```typescript
+  export const ExpensiveComponent = React.memo(({ data }) => {
+    // Component logic
+  })
+  ```
+</Accordion>
+
+<Accordion title="Optimize Re-renders">
+  Use useMemo() and useCallback() to prevent unnecessary re-renders:
+  
+  ```typescript
+  const memoizedValue = useMemo(() => computeExpensiveValue(a, b), [a, b])
+  const memoizedCallback = useCallback(() => doSomething(a, b), [a, b])
+  ```
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Package" icon="cube" href="/reference/core-package">
+    Learn about the full monorepo architecture
+  </Card>
+  <Card title="Node Package" icon="server" href="/reference/node-package">
+    Integrate with the backend API
+  </Card>
+  <Card title="Components" icon="layer-group" href="/components">
+    Explore available UI components
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/deployment">
+    Deploy your React application
+  </Card>
+</CardGroup>
